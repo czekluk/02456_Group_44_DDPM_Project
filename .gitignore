@@ -116,3 +116,6 @@ main_notebook.ipynb
 *.ipynb
 *.out
 *.err
+
+
+/data
