@@ -5,8 +5,12 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
+from datetime import datetime
+
 from schedule import LinearSchedule
 from objective import NoiseObjective
+
+PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 class DiffusionModel:
     def __init__(self, model: torch.nn.Module, T: int = 1000, b0: float = 10e-4, bT: float = 0.02):
@@ -113,5 +117,26 @@ class DiffusionModel:
         Sampling operation of the diffusion model.
         '''
         pass
+
+    def save(self, path: str = os.path.join(PROJECT_BASE_DIR, 'results', 'models')):
+        '''
+        Save the model to a file.
+
+        Inputs:
+        - path: Path where to save the model
+        '''
+        model_name = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-DiffusionModel.pth"
+        torch.save(self.model.state_dict(), os.path.join(path, model_name))
+        print(f'Model saved to {os.path.join(path, model_name)}')
+
+    def load(self, path: str):
+        '''
+        Load a diffusion model from file
+        
+        Inputs:
+        - path: Path to the model file
+        '''
+        self.model.load_state_dict(torch.load(path, weights_only=True))
+        print(f'Model loaded from {path}')
 
     
