@@ -21,7 +21,7 @@ class LinearSchedule:
         self.end_value = end_value
         self.T = T
 
-        self.schedule = torch.linspace(start_value, end_value, T).to(self.device)
+        self.schedule = torch.linspace(start_value, end_value, T)
 
         
 
