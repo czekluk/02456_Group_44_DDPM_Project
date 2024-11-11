@@ -112,9 +112,17 @@ class DiffusionModel:
         normal = torch.distributions.normal.Normal(mean, std)
         return normal.rsample(sample_shape=x.shape)
 
-    def sample():
+    def sample(n_samples: int):
         '''
         Sampling operation of the diffusion model.
+
+        Inputs:
+        - n_samples: Number of samples to generate (batch size)
+
+        Returns:
+        - samples: List of generated samples (List of tensors with shape [B, C, H, W])
+
+        NOTE: This definition is just a proposal. Please feel free to change it to your needs.
         '''
         pass
 

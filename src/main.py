@@ -13,6 +13,7 @@ from diffusion_model import DiffusionModel
 from dataset import DiffusionDataModule
 from trainer import Trainer
 from logger import Logger
+from visualizer import Visualizer
 from model import UNet
 
 def main():
@@ -50,6 +51,18 @@ def main():
     # Plot the plots & save the model & logs
     logger.plot()
     logger.save()
+
+    # Get the best model from the logger
+    diffusion_model = logger.best_model
+
+    # Plot the samples
+    visualizer = Visualizer()
+    visualizer.plot_forward_process(diffusion_model, [0, 250, 500, 750, 1000])
+    visualizer.plot_reverse_process(diffusion_model, [0, 250, 500, 750, 1000])
+
+    # Sample from the model
+    samples = diffusion_model.sample(n_samples=10)
+    visualizer.plot_multiple_images(samples[-1])
 
 if __name__ == "__main__":
     main()
