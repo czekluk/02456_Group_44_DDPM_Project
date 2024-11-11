@@ -118,14 +118,15 @@ class DiffusionModel:
         '''
         pass
 
-    def save(self, path: str = os.path.join(PROJECT_BASE_DIR, 'results', 'models')):
+    def save(self, path: str = os.path.join(PROJECT_BASE_DIR, 'results', 'models'),
+             model_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-DiffusionModel.pth"):
         '''
         Save the model to a file.
 
         Inputs:
         - path: Path where to save the model
+        - model_name: Name of the model file
         '''
-        model_name = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-DiffusionModel.pth"
         torch.save(self.model.state_dict(), os.path.join(path, model_name))
         print(f'Model saved to {os.path.join(path, model_name)}')
 
