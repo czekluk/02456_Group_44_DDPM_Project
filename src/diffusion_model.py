@@ -104,28 +104,37 @@ class DiffusionModel:
         mean = torch.sqrt(self.schedule.alpha_dash(t)) * x
 
         # calculate std of forward sampling process
-        identity = torch.eye(x.shape[2], x.shape[3])
+        identity = torch.ones(x.shape[2], x.shape[3])
         identity = identity.unsqueeze(0).unsqueeze(0).expand(x.shape[0], x.shape[1], x.shape[2], x.shape[3])
         std = (1-self.schedule.alpha_dash(t)) * identity
 
         # sample noise from N(mean, std)
         normal = torch.distributions.normal.Normal(mean, std)
-        return normal.rsample(sample_shape=x.shape)
+        return normal.sample()
 
-    def sample():
+    def sample(n_samples: int):
         '''
         Sampling operation of the diffusion model.
+
+        Inputs:
+        - n_samples: Number of samples to generate (batch size)
+
+        Returns:
+        - samples: List of generated samples (List of tensors with shape [B, C, H, W])
+
+        NOTE: This definition is just a proposal. Please feel free to change it to your needs.
         '''
         pass
 
-    def save(self, path: str = os.path.join(PROJECT_BASE_DIR, 'results', 'models')):
+    def save(self, path: str = os.path.join(PROJECT_BASE_DIR, 'results', 'models'),
+             model_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-DiffusionModel.pth"):
         '''
         Save the model to a file.
 
         Inputs:
         - path: Path where to save the model
+        - model_name: Name of the model file
         '''
-        model_name = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-DiffusionModel.pth"
         torch.save(self.model.state_dict(), os.path.join(path, model_name))
         print(f'Model saved to {os.path.join(path, model_name)}')
 

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 class NoiseObjective(torch.nn.Module):
     def __init__(self):
-        super.__init__()
+        super(NoiseObjective, self).__init__()
 
     def forward(self, epsilon, epsilon_pred):
         '''
