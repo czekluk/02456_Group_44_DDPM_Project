@@ -104,13 +104,13 @@ class DiffusionModel:
         mean = torch.sqrt(self.schedule.alpha_dash(t)) * x
 
         # calculate std of forward sampling process
-        identity = torch.eye(x.shape[2], x.shape[3])
+        identity = torch.ones(x.shape[2], x.shape[3])
         identity = identity.unsqueeze(0).unsqueeze(0).expand(x.shape[0], x.shape[1], x.shape[2], x.shape[3])
         std = (1-self.schedule.alpha_dash(t)) * identity
 
         # sample noise from N(mean, std)
         normal = torch.distributions.normal.Normal(mean, std)
-        return normal.rsample(sample_shape=x.shape)
+        return normal.sample()
 
     def sample(n_samples: int):
         '''

@@ -196,7 +196,7 @@ class Visualizer:
     def plot_forward_process(self, diffusion_model: DiffusionModel, x: torch.Tensor, t: List[int], 
                              save_path: str = os.path.join(PROJECT_BASE_DIR,'results','images','forward_process'),
                              fig_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Forward-Process.png",
-                             title: str = 'Forward Process'):
+                             title: str = 'Forward Process', cmap: str = 'gray'):
         '''
         Plot the forward process of the diffusion model
 
@@ -207,10 +207,10 @@ class Visualizer:
         - fig_name: Name of the saved file
         '''
         # create plot
-        fig, ax = plt.subplots(1, len(t), figsize=(10,6))
+        fig, ax = plt.subplots(1, len(t), figsize=(10,4))
         for idx in range(len(t)):
             x_t = diffusion_model.forward(x, t[idx])
-            ax[idx].imshow(x_t.squeeze().detach().cpu().numpy())
+            ax[idx].imshow(x_t[0].squeeze().detach().cpu().numpy(), cmap=cmap)
             ax[idx].axis('off')
             ax[idx].set_title(f't={t[idx]}')
         fig.suptitle(title)

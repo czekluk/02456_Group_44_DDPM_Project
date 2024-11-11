@@ -57,7 +57,8 @@ def main():
 
     # Plot the samples
     visualizer = Visualizer()
-    visualizer.plot_forward_process(diffusion_model, [0, 250, 500, 750, 1000])
+    x, _ = next(iter(val_loader))
+    visualizer.plot_forward_process(diffusion_model, x, [0, 250, 500, 750, 1000])
     visualizer.plot_reverse_process(diffusion_model, [0, 250, 500, 750, 1000])
 
     # Sample from the model
