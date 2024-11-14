@@ -41,7 +41,7 @@ class Trainer:
             for minibatch_idx, (x, _) in tqdm(enumerate(self.train_loader), unit='minibatch', total=len(self.train_loader)):
                 x = x.to(self.diffusion_model.device)
                 loss = self.diffusion_model.train(x, self.optimizer)
-                epoch_loss.append(loss.item())
+                epoch_loss.append(loss)
             print(f'Epoch: {epoch} | Train Loss: {np.mean(epoch_loss)}')
 
             # Validation loop
@@ -56,7 +56,7 @@ class Trainer:
 
             # Log the training & validation metrics
             self.logger.log_training(np.mean(epoch_loss), np.mean(epoch_fid), np.mean(epoch_is))
-            self.logger.log_model(self.diffusion_model.model, epoch)
+            self.logger.log_model(self.diffusion_model, epoch)
 
         # Return the logger of the training process
         return self.logger

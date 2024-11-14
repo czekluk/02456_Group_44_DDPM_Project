@@ -1,6 +1,6 @@
 import os
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Subset
 
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(PROJECT_BASE_DIR, "data")
@@ -11,6 +11,8 @@ class DiffusionDataModule:
 
     def get_MNIST_dataloader(self, train: bool, batch_size: int, shuffle: bool, transform):
         dataset = datasets.MNIST(root=self.data_dir, train=train, transform=transform, download=True)
+        # NOTE: uncomment if you want to limit the dataset for testing purposes
+        #dataset = Subset(dataset, list(range(128)))
         return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
     def get_CIFAR10_dataloader(self, train: bool, batch_size: int, shuffle: bool, transform):

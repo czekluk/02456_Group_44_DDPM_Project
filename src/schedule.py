@@ -55,3 +55,10 @@ class LinearSchedule:
         for i in range(1,t):
             alpha_dash *= self.alpha(i)
         return alpha_dash
+    
+    def alpha_dash_list(self, ts: torch.tensor):
+        # Compute alphas as a list comprehension, with each alpha_dash(t) being a scalar value
+        alphas = [self.alpha_dash(t) for t in ts]
+
+        # Convert to a tensor and reshape to (batch_size, 1)
+        return torch.tensor(alphas).view(-1, 1)
