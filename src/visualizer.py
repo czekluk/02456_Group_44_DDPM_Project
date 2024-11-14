@@ -231,12 +231,11 @@ class Visualizer:
         - save_path: Path to save-directory
         - fig_name: Name of the saved file
         '''
-        # extract images from reverse process
-        x_t = diffusion_model.sample() # assuming it returns a list of images
 
         # create plot
         fig, ax = plt.subplots(1, len(t), figsize=(10,6))
         for idx in range(len(t)):
+            x_t = diffusion_model.backward(t[idx])
             ax[idx].imshow(x_t[t[idx]].squeeze().detach().cpu().numpy())
             ax[idx].axis('off')
             ax[idx].set_title(f't={t[idx]}')

@@ -4,7 +4,7 @@ import sys
 
 import numpy as np
 import matplotlib.pyplot as plt
-import tqdm
+from tqdm import tqdm
 
 from datetime import datetime
 
@@ -78,7 +78,7 @@ class Trainer:
         self.diffusion_model.model.eval() # should possibly be inside the sample method
         with torch.no_grad():
             # Generate samples using the diffusion model
-            gen = self.diffusion_model.sample(x)
+            gen = self.diffusion_model.sample(len(x))
 
             # Calculate FID score
             fid_score = fid.calculate_fid(x, gen)
