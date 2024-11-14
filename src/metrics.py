@@ -77,7 +77,15 @@ class FIDScore:
             raise ValueError('Input tensors must have the same shape')
         
         if real_img.shape[1] != 3 or gen_img.shape[1] != 3:
-            raise ValueError('Input tensors must have 3 channels')
+            # Check if images are grayscale (1 channel) and convert to RGB (3 channels) if needed (to work for MNIST)
+            if real_img.shape[1] == 1:
+                real_img = real_img.repeat(1, 3, 1, 1)  # Repeat across the channel dimension
+            else:
+                raise ValueError('Input tensor must have 3 channels')
+            if gen_img.shape[1] == 1:
+                gen_img = gen_img.repeat(1, 3, 1, 1)  # Repeat across the channel dimension
+            else:
+                raise ValueError('Input tensor must have 3 channels')
 
         with torch.no_grad():
             # resize & normalize images
@@ -143,7 +151,11 @@ class InceptionScore:
             raise ValueError('Input tensor must have 4 dimensions')
         
         if  gen_img.shape[1] != 3:
-            raise ValueError('Input tensor must have 3 channels')
+            # Check if images are grayscale (1 channel) and convert to RGB (3 channels) if needed (to work for MNIST)
+            if gen_img.shape[1] == 1:
+                gen_img = gen_img.repeat(1, 3, 1, 1)  # Repeat across the channel dimension
+            else:
+                raise ValueError('Input tensor must have 3 channels')
 
         with torch.no_grad():
             # resize & normalize images

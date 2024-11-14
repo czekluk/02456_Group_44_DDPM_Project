@@ -17,4 +17,12 @@ class NoiseObjective(torch.nn.Module):
         - epsilon: True sampled noise
         - epsilon_pred: Predicted noise
         '''
-        return torch.mean(torch.linalg.norm(epsilon - epsilon_pred, ord=2, dim=(1,2,3))**2)
+        # Calculate the element-wise difference between epsilon and epsilon_pred
+        diff = epsilon - epsilon_pred
+        
+        # Compute the L2 norm over spatial dimensions (H, W, C) for each sample
+        # We can flatten the last three dimensions (channel, height, width)
+        norm = torch.norm(diff.view(diff.shape[0], -1), p=2, dim=1)  # Compute L2 norm for each sample across (C, H, W)
+        
+        # Return the mean squared norm over the batch
+        return torch.mean(norm ** 2)
