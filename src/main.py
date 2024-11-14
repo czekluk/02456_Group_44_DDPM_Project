@@ -14,7 +14,7 @@ from dataset import DiffusionDataModule
 from trainer import Trainer
 from logger import Logger
 from visualizer import Visualizer
-from model import UNet
+from model import Model
 
 def main():
     # Initialize data module & get data loaders
@@ -33,7 +33,7 @@ def main():
     )
 
     # Initialize diffusion model
-    model = UNet()
+    model = Model(ch=64, out_ch=1, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
     diffusion_model = DiffusionModel(model)
 
     # Inititalize trainer object
@@ -42,7 +42,7 @@ def main():
         train_loader=train_loader,
         val_loader=val_loader,
         optimizer=torch.optim.Adam(diffusion_model.model.parameters(), lr=1e-4),
-        num_epochs=10
+        num_epochs=2
     )
 
     # Train the model

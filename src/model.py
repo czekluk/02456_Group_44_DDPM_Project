@@ -16,15 +16,24 @@ def get_timestep_embedding(timesteps, embedding_dim):
     This matches the implementation in tensor2tensor, but differs slightly
     from the description in Section 3.5 of "Attention Is All You Need".
     """
-    assert len(timesteps.shape) == 1  # and timesteps.dtype == tf.int32
+    device = timesteps.device  # Get the device of `timesteps`
+
+    assert len(timesteps.shape) == 1  # Ensure `timesteps` is a 1D tensor
 
     half_dim = embedding_dim // 2
-    emb = math.log(10000) / (half_dim - 1)
-    emb = torch.exp(torch.arange(half_dim, dtype=torch.float32) * -emb)
-    emb = timesteps[:, None].float() * emb[None, :]
-    emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=1)
-    if embedding_dim % 2 == 1:  # zero pad
-        emb = F.pad(emb, (0, 1))
+    emb_scale = math.log(10000) / (half_dim - 1)
+    
+    # Ensure that all tensors are created directly on `device`
+    emb = torch.exp(torch.arange(half_dim, device=device, dtype=torch.float32) * -emb_scale)
+    emb = timesteps[:, None].float().to(device) * emb[None, :]  # Multiply on `device`
+    
+    # Concatenate sinusoidal and cosinusoidal embeddings
+    emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=1).to(device)
+    
+    # Pad if embedding_dim is odd
+    if embedding_dim % 2 == 1:
+        emb = F.pad(emb, (0, 1)).to(device)
+    
     assert emb.shape == (timesteps.shape[0], embedding_dim)
     return emb
 
@@ -240,16 +249,18 @@ def test_model():
     train_loader = DataLoader(mnist_train, batch_size=64, shuffle=True)
     test_loader = DataLoader(mnist_test, batch_size=64, shuffle=False)
 
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print("DEVICE: ", device)
     # Initialize the model
     model = Model(ch=64, out_ch=1, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
-    model = model.to('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
 
     # Test the forward process
     for i, (images, labels) in enumerate(train_loader):
         if i >= 2:
             break
-        images = images.to('cuda' if torch.cuda.is_available() else 'cpu')
-        t = torch.randint(0, 1000, (images.size(0),)).to('cuda' if torch.cuda.is_available() else 'cpu')
+        images = images.to(device)
+        t = torch.randint(0, 1000, (images.size(0),)).to(device)
         output = model(images, t)
         print(output.shape)
         import matplotlib.pyplot as plt
@@ -265,7 +276,7 @@ def test_model():
         criterion = nn.MSELoss()
 
         # Generate a random noisy image
-        noisy_image = torch.randn_like(images).to('cuda' if torch.cuda.is_available() else 'cpu')
+        noisy_image = torch.randn_like(images).to(device)
 
         # Forward pass
         output = model(noisy_image, t)

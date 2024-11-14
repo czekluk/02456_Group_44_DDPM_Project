@@ -13,7 +13,7 @@ from objective import NoiseObjective
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 class DiffusionModel:
-    def __init__(self, model: torch.nn.Module, T: int = 1000, b0: float = 10e-4, bT: float = 0.02):
+    def __init__(self, model: torch.nn.Module, T: int = 1000, b0: float = 10e-4, bT: float = 0.02, img_shape: tuple = (1, 28, 28)):
         '''
         Diffusion model class implemnting the diffusion model as described in the "Denoising Diffusion Probabilistic Models" paper.
         Source: https://arxiv.org/pdf/2006.11239
@@ -30,6 +30,7 @@ class DiffusionModel:
         self.uniform = torch.distributions.uniform.Uniform(1, T)
         self.normal = torch.distributions.normal.Normal(0, 1)
         self.schedule = LinearSchedule(b0, bT, T)
+        self.img_shape = img_shape
 
         # Training related parameters
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -111,8 +112,40 @@ class DiffusionModel:
         # sample noise from N(mean, std)
         normal = torch.distributions.normal.Normal(mean, std)
         return normal.sample()
+    
+    def backward(self, x: torch.Tensor, t: int):
+        '''
+        Reverse process of the diffusion model.
 
-    def sample(n_samples: int):
+        Inputs:
+        - x: Noisy image at timestep t [B, C, H, W]
+        - t: Current timestep in the reverse process
+
+        Returns:
+        - x_t_minus_1: Denoised image at timestep t-1
+        '''
+        # Predict the noise in the image at timestep t
+        t_tensor = torch.full((x.shape[0], 1), t, device=self.device, dtype=torch.int64)
+        noise_pred = self.model(x, t_tensor)
+
+        # Retrieve alpha_t and beta_t from the schedule
+        alpha_dash_t = self.schedule.alpha_dash(t).to(self.device)
+        alpha_t = self.schedule.alpha(t).to(self.device)
+        beta_t = self.schedule.beta(t).to(self.device)  # Variance for timestep t
+
+        # Compute the mean for x_t_minus_1 using the noise prediction
+        mean = (1 / torch.sqrt(alpha_t)) * (x - ((1 - alpha_t)/torch.sqrt(1 - alpha_dash_t)) * noise_pred)
+        
+        # Sample noise using beta_t as the variance for the current timestep
+        if t > 1:
+            noise = torch.randn_like(x).to(self.device)  # Standard Gaussian noise
+            x_t_minus_1 = mean + torch.sqrt(beta_t) * noise
+        else:
+            x_t_minus_1 = mean  # No noise at the final step
+
+        return x_t_minus_1
+    
+    def sample(self, n_samples: int):
         '''
         Sampling operation of the diffusion model.
 
@@ -120,12 +153,19 @@ class DiffusionModel:
         - n_samples: Number of samples to generate (batch size)
 
         Returns:
-        - samples: List of generated samples (List of tensors with shape [B, C, H, W])
-
-        NOTE: This definition is just a proposal. Please feel free to change it to your needs.
+        - samples: Generated samples as a tensor with shape [n_samples, C, H, W]
         '''
-        pass
+        # Step 1: Initialize with Gaussian noise with mean 0 and variance 1
+        C, H, W = self.img_shape  # Assume img_shape is defined in the model as (channels, height, width)
+        x_t = torch.randn((n_samples, C, H, W), device=self.device)  # Starting with pure noise
 
+        # Step 2: Loop through timesteps in reverse
+        for t in reversed(range(1, self.T + 1)):  # Assumes num_timesteps is defined
+            x_t = self.backward(x_t, t)
+
+        # Step 3: Return the batch of generated samples
+        return x_t
+    
     def save(self, path: str = os.path.join(PROJECT_BASE_DIR, 'results', 'models'),
              model_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-DiffusionModel.pth"):
         '''
