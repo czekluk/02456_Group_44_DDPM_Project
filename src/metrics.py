@@ -4,14 +4,19 @@ import sys
 
 import numpy as np
 import matplotlib.pyplot as plt
+import tensorflow_hub as tfhub
+import tensorflow as tf
+import tensorflow_gan as tfgan
 
 from scipy.linalg import sqrtm
 from datetime import datetime
 from torchvision.models import inception_v3
 from torchvision import transforms
+from dataset import DiffusionDataModule
 
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 class ScoreInceptionV3(torch.nn.Module):
     def __init__(self):
@@ -49,6 +54,8 @@ class FIDScore:
         - None
         '''
         self.inception_model = ScoreInceptionV3()
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.inception_model.to(self.device)
 
         # transforms for resizing and normalizing the images
         # normalizing w.r.t. the ImageNet mean & std.
@@ -96,6 +103,8 @@ class FIDScore:
                 gen[i] = self.transform(gen_img[i])
 
             # get fully-connected activations from the inception model
+            real = real.to(self.device)
+            gen = gen.to(self.device)
             real_act = self.inception_model(real)
             gen_act = self.inception_model(gen)
 
@@ -107,15 +116,75 @@ class FIDScore:
             gen_cov = torch.cov(torch.transpose(gen_act, 0, 1))
 
             # calculate the FID score
-            cov_prod = (real_cov @ gen_cov).detach().numpy()
+            cov_prod = (real_cov @ gen_cov).cpu().detach().numpy()
             calc_sqrtm = sqrtm(cov_prod)
             if np.iscomplexobj(calc_sqrtm):
                 calc_sqrtm = calc_sqrtm.real
-            calc_sqrtm = torch.from_numpy(calc_sqrtm)
+            calc_sqrtm = torch.from_numpy(calc_sqrtm).to(self.device)
             fid_score = torch.norm(real_mean - gen_mean)**2 + torch.trace(real_cov + gen_cov - 2*calc_sqrtm)
 
-            return fid_score
+            return fid_score.cpu().detach().numpy()
 
+
+class tfFIDScore:
+    def __init__(self, mode: str = 'mnist'):
+        if mode == 'mnist':
+            self.classifier = tfhub.load("https://tfhub.dev/tensorflow/tfgan/eval/mnist/logits/1")
+        elif mode == 'cifar10':
+            raise NotImplementedError('CIFAR-10 not implemented yet')
+        else:
+            raise ValueError('Invalid mode. Choose from: mnist, cifar10')
+        
+    def calculate_fid(self, real_img: torch.Tensor, gen_img: torch.Tensor):
+        '''
+        Calculate the FID score between the real and generated images.
+        Assumes images have been sampled from their respective distributions.
+
+        Inputs:
+        - real_img: Real images [N, 3, H, W] as torch.Tensor
+        - gen_img: generated images [N, 3, H, W] as torch.Tensor
+
+        Returns:
+        - fid_score: FID score between the real and generated images
+        '''
+        # make sure dimensions are correct
+        if len(real_img.shape) != 4 or len(gen_img.shape) != 4:
+            raise ValueError('Input tensors must have 4 dimensions')
+        
+        if real_img.shape != gen_img.shape:
+            raise ValueError('Input tensors must have the same shape')
+        
+        # permute tensors
+        real_img = real_img.permute(0, 2, 3, 1).cpu().detach().numpy()
+        gen_img = gen_img.permute(0, 2, 3, 1).cpu().detach().numpy()
+
+        # conver to tensorflow tensors
+        real_img = tf.convert_to_tensor(real_img)
+        gen_img = tf.convert_to_tensor(gen_img)
+
+        # compute activations
+        real_activations = self.compute_activations(real_img)
+        gen_activations = self.compute_activations(gen_img)
+
+        # calculate the FID score
+        fid_score = tfgan.eval.frechet_classifier_distance_from_activations(real_activations, gen_activations)
+
+        return fid_score
+
+    def compute_activations(self, images: tf.Tensor):
+        '''
+        Compute the activations of the images using the classifier.
+
+        Inputs:
+        - images: Images to compute the activations for
+
+        Returns:
+        - activations: Activations of the images
+        '''
+        tensors_list = tf.split(images, num_or_size_splits=1)
+        stack = tf.stack(tensors_list)
+        activations = tf.nest.map_structure(tf.stop_gradient, tf.map_fn(self.classifier, stack, parallel_iterations=1, swap_memory=True))
+        return tf.concat(tf.unstack(activations), 0)
 
 class InceptionScore:
     def __init__(self):
@@ -127,6 +196,8 @@ class InceptionScore:
         - None
         '''
         self.inception_model = inception_v3(weights='IMAGENET1K_V1', progress=True).eval()
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.inception_model.to(self.device)
 
         # transforms for resizing and normalizing the images
         # normalizing w.r.t. the ImageNet mean & std.
@@ -164,6 +235,7 @@ class InceptionScore:
                 gen[i] = self.transform(gen_img[i])
 
             # calculate p(y|x) using the inception model
+            gen = gen.to(self.device)
             p_yx = self.inception_model(gen)
             p_yx = torch.nn.functional.softmax(p_yx, dim=1)
 
@@ -179,7 +251,7 @@ class InceptionScore:
             # calculate the Inception score
             is_score = torch.exp(kl_div)
 
-            return is_score
+            return is_score.cpu().detach().numpy()
 
 
 def test_fid_score():
@@ -214,9 +286,31 @@ def test_is_score():
     inception_score = iSc.calculate_is(gen_img)
     print(f'Inception Score: {inception_score:.4f}')
 
+def test_tf_fid_score():
+    '''
+    Test the FID score calculation using TensorFlow.
+    '''
+    fid = tfFIDScore()
+
+    # generate random images from same distribution
+    real_img = torch.rand((50, 1, 28, 28))
+    gen_img = torch.rand((50, 1, 28, 28))
+
+    fid_score = fid.calculate_fid(real_img, gen_img)
+    print(f'FID Score from similar distributions: {fid_score:.4f}')
+
+    # generate random imagesfrom dissimilar distribution
+    real_img = torch.rand((50, 1, 28, 28))
+    gen_img = torch.rand((50, 1, 28, 28)) + 5
+
+    fid_score = fid.calculate_fid(real_img, gen_img)
+    print(f'FID Score from dissimilar distributions: {fid_score:.4f}')
+
 
 if __name__ == '__main__':
     # Note: Process is killed when batch size is too large
-    test_fid_score()
+    #test_fid_score()
 
-    test_is_score()
+    #test_is_score()
+
+    test_tf_fid_score()

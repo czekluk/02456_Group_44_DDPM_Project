@@ -21,13 +21,13 @@ def main():
     data_module = DiffusionDataModule()
     train_loader = data_module.get_MNIST_dataloader(
         train=True,
-        batch_size=32,
+        batch_size=128,
         shuffle=True,
         transform=transforms.Compose([transforms.ToTensor()])
     )
     val_loader = data_module.get_MNIST_dataloader(
         train=False,
-        batch_size=32,
+        batch_size=128,
         shuffle=True,
         transform=transforms.Compose([transforms.ToTensor()])
     )
@@ -35,7 +35,7 @@ def main():
 
     # Initialize diffusion model
     model = Model(ch=64, out_ch=1, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
-    diffusion_model = DiffusionModel(model, T=10)
+    diffusion_model = DiffusionModel(model, T=1000)
 
     # Inititalize trainer object
     trainer = Trainer(
@@ -43,11 +43,11 @@ def main():
         train_loader=train_loader,
         val_loader=val_loader,
         optimizer=torch.optim.Adam(diffusion_model.model.parameters(), lr=1e-4),
-        num_epochs=1
+        num_epochs=5
     )
 
     # Train the model
-    logger = trainer.train()
+    logger = trainer.train(n_scores=10)
 
     # Plot the plots & save the model & logs
     logger.plot()
@@ -59,14 +59,13 @@ def main():
     # Plot the samples
     visualizer = Visualizer()
     x, _ = next(iter(val_loader))
-    visualizer.plot_forward_process(diffusion_model, x, [0, 2, 5, 7, 9])
-    visualizer.plot_reverse_process(diffusion_model, [0, 2, 5, 7, 9])
+    visualizer.plot_forward_process(diffusion_model, x, [0, 250, 500, 750, 1000])
+    samples = diffusion_model.all_step_sample(n_samples=16)
+    visualizer.plot_reverse_process(samples, [0, 250, 500, 750, 1000])
 
     # Sample from the model
-    samples = diffusion_model.sample(n_samples=10)
-    images_list = [sample.cpu().detach().numpy() for sample in samples[-1]] 
-    # NOTE: Does not plot properly. Samples is a batch of images [batch_size, C, H, W]
-    #visualizer.plot_multiple_images(images_list)
+    samples = diffusion_model.sample(n_samples=16)
+    visualizer.plot_multiple_images(samples)
 
 if __name__ == "__main__":
     main()
