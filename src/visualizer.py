@@ -72,7 +72,7 @@ class Visualizer:
     def plot_single_image(self, image: np.ndarray, 
                           save_path: str = os.path.join(PROJECT_BASE_DIR,'results','images','generated'),
                           fig_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Generated-Image.png",
-                          title: str = 'Generated Image'):
+                          title: str = 'Generated Image', cmap: str = 'gray'):
         '''
         Plot a single image
 
@@ -83,7 +83,7 @@ class Visualizer:
         '''
         # create plot
         fig, ax = plt.subplots(figsize=(10,6))
-        ax.imshow(image)
+        ax.imshow(image, cmap=cmap)
         ax.set_title(title)
         ax.axis('off')
 
@@ -244,12 +244,12 @@ class Visualizer:
         - save_path: Path to save-directory
         - fig_name: Name of the saved file
         '''
-
+        x_t = diffusion_model.all_step_sample(n_samples=1)
+        x_t.reverse()
         # create plot
         fig, ax = plt.subplots(1, len(t), figsize=(10,6))
         for idx in range(len(t)):
-            x_t = diffusion_model.sample(n_samples=1, t=t[idx])
-            ax[idx].imshow(x_t.squeeze().detach().cpu().numpy(), cmap=cmap)
+            ax[idx].imshow(x_t[t[idx]][0].squeeze(), cmap=cmap)
             ax[idx].axis('off')
             ax[idx].set_title(f't={t[idx]}')
         fig.suptitle(title)

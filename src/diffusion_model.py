@@ -131,20 +131,23 @@ class DiffusionModel:
         '''
         # Predict the noise in the image at timestep t
         t_tensor = torch.full((x.shape[0],), t, device=self.device, dtype=torch.int64)
-
+        x = x.to(self.device)
         noise_pred = self.model(x, t_tensor)
 
         # Retrieve alpha_t and beta_t from the schedule
-        alpha_dash_t = self.schedule.alpha_dash(t).to(self.device)
-        alpha_t = self.schedule.alpha(t).to(self.device)
-        beta_t = self.schedule.beta(t).to(self.device)  # Variance for timestep t
+        alpha_dash_t = self.schedule.alpha_dash(t).cpu().detach()
+        alpha_t = self.schedule.alpha(t).cpu().detach()
+        beta_t = self.schedule.beta(t).cpu().detach()  # Variance for timestep t
+
+        noise_pred = noise_pred.cpu().detach()
+        x = x.cpu().detach()
 
         # Compute the mean for x_t_minus_1 using the noise prediction
         mean = (1 / torch.sqrt(alpha_t)) * (x - ((1 - alpha_t)/torch.sqrt(1 - alpha_dash_t)) * noise_pred)
         
         # Sample noise using beta_t as the variance for the current timestep
         if t > 1:
-            noise = torch.randn_like(x).to(self.device)  # Standard Gaussian noise
+            noise = torch.randn_like(x).cpu() # Standard Gaussian noise
             x_t_minus_1 = mean + torch.sqrt(beta_t) * noise
         else:
             x_t_minus_1 = mean  # No noise at the final step
@@ -172,6 +175,29 @@ class DiffusionModel:
 
         # Step 3: Return the batch of generated samples
         return x_t
+    
+    def all_step_sample(self, n_samples=10):
+        '''
+        Sampling operation of the diffusion model.
+
+        Inputs:
+        - n_samples: Number of samples to generate (batch size)
+
+        Returns:
+        - samples: List of generated samples of shape [n_samples, C, H, W] corresponding to all time steps
+        '''
+        # Step 1: Initialize with Gaussian noise with mean 0 and variance 1
+        C, H, W = self.img_shape
+        x_t = torch.randn((n_samples, C, H, W), device=self.device)  # Starting with pure noise
+        x_ts = [x_t.detach().cpu().numpy()]
+
+        # Step 2: Loop through timesteps in reverse
+        for t in reversed(range(0, self.T)):  # Assumes num_timesteps is defined
+            x_t = self.backward(x_t, t)
+            x_ts.append(x_t.detach().cpu().numpy())
+
+        # Step 3: Return the list of generated samples
+        return x_ts
     
     def save(self, path: str = os.path.join(PROJECT_BASE_DIR, 'results', 'models'),
              model_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-DiffusionModel.pth"):
