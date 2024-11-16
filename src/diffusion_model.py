@@ -174,7 +174,25 @@ class DiffusionModel:
             x_t = self.backward(x_t, t)
 
         # Step 3: Return the batch of generated samples
-        return x_t
+        return x_t.cpu().detach().numpy()
+    
+    def sample_from_noise(self, x_t: torch.Tensor, t: int):
+        '''
+        Generate samples from the noise tensor at timestep t.
+
+        Inputs:
+        - noise: Noise tensor at timestep t [B, C, H, W]
+        - t: Timestep at which to sample the image
+
+        Returns:
+        - samples: Generated samples as a tensor with shape [B, C, H, W]
+        '''
+        # Step 2: Loop through timesteps in reverse
+        for t in reversed(range(t, self.T)):  # Assumes num_timesteps is defined
+            x_t = self.backward(x_t, t)
+
+        # Step 3: Return the batch of generated samples
+        return x_t.cpu().detach().numpy()
     
     def all_step_sample(self, n_samples=10):
         '''

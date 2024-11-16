@@ -96,7 +96,7 @@ class Visualizer:
     def plot_reconstructed_image(self, original_image: np.ndarray, reconstructed_image: np.ndarray,
                                  save_path: str = os.path.join(PROJECT_BASE_DIR,'results','images','reconstructed'),
                                  fig_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Reconstructed-Image.png",
-                                 title: str = 'Reconstructed Image'):
+                                 title: str = 'Reconstructed Image', cmap: str = 'gray'):
         '''
         Plot two images side by side.
         Original image on the left and reconstructed image on the right.
@@ -109,12 +109,12 @@ class Visualizer:
         '''
         # create plot
         fig, ax = plt.subplots(1, 2, figsize=(10,6))
-        ax[0,0].imshow(original_image)
-        ax[0,0].set_title('Original Image')
-        ax[0,0].axis('off')
-        ax[0,1].imshow(reconstructed_image)
-        ax[0,1].set_title('Reconstructed Image')
-        ax[0,1].axis('off')
+        ax[0].imshow(original_image, cmap=cmap)
+        ax[0].set_title('Original Image')
+        ax[0].axis('off')
+        ax[1].imshow(reconstructed_image, cmap=cmap)
+        ax[1].set_title('Reconstructed Image')
+        ax[1].axis('off')
         fig.suptitle(title)
 
         # save plot
@@ -131,27 +131,28 @@ class Visualizer:
         Plot multiple images in a grid
 
         Inputs:
-        - images: numpy array of shape [B, C, H, W]
+        - images: numpy array of shape [B, C, H, W]. Shall be at least 5 images
         - save_path: Path to save-directory
         - fig_name: Name of the saved file
         '''
-        images = images.cpu().detach().numpy()
         # preprocessing for plot
-        if images.shape[0] >= 16:
+        if images.shape[0] > 16:
             images = images[:16]
             print('Only the first 16 images will be plotted')
-        if images.shape[0] < 4:
-            num_rows = 1
-        else:
-            num_rows = images.shape[0] // 4
+        num_rows = int(np.ceil(images.shape[0] / 4))
 
         # create plot
         fig, ax = plt.subplots(num_rows, 4, figsize=(10,10))
         for i in range(num_rows):
             for j in range(4):
-                if i*4+j < images.shape[0]:
-                    ax[i,j].imshow(images[i*4+j].squeeze(), cmap=cmap)
+                if num_rows > 1:
+                    if i*4+j < images.shape[0]:
+                        ax[i,j].imshow(images[i*4+j].squeeze(), cmap=cmap)
                     ax[i,j].axis('off')
+                else:
+                    if j < images.shape[0]:
+                        ax[j].imshow(images[j].squeeze(), cmap=cmap)
+                    ax[j].axis('off')
         fig.suptitle(title)
 
         # save plot
@@ -163,39 +164,46 @@ class Visualizer:
     def plot_reconstructed_images(self, original_images: List[np.ndarray], reconstructed_images: List[np.ndarray],
                                   save_path: str = os.path.join(PROJECT_BASE_DIR,'results','images','reconstructed'),
                                   fig_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Reconstructed-Images.png",
-                                  title: str = 'Reconstructed Images'):
+                                  title: str = 'Reconstructed Images', cmap: str = 'gray'):
         '''
         Plot multiple pairs of images side by side.
         Original images on the left and reconstructed images on the right.
 
         Inputs:
-        - original_images: List of original images
-        - reconstructed_images: List of reconstructed images
+        - original_images: original images in shape [B, C, H, W]
+        - reconstructed_images: reconstructed images in shape [B, C, H, W]
         - save_path: Path to save-directory
         - fig_name: Name of the saved file
         '''
         # preprocessing for plot
         assert len(original_images) == len(reconstructed_images), 'Number of original and reconstructed images should be the same'
-        if len(original_images) >= 16:
+        if original_images.shape[0] > 16:
             original_images = original_images[:16]
             reconstructed_images = reconstructed_images[:16]
             print('Only the first 16 images will be plotted')
-        if len(original_images) < 4:
-            num_rows = 1
-        else:
-            num_rows = len(original_images) // 4
 
+        num_rows = int(np.ceil(original_images.shape[0] / 4))
         # create plot
         fig, ax = plt.subplots(num_rows, 4*2, figsize=(10,10))
         for i in range(num_rows):
             for j in range(8):
                 if i*4+(j//2) < len(original_images):
-                    if j % 2 == 0:
-                        ax[i,j].imshow(original_images[i*4+(j//2)])
+                    if num_rows > 1:
+                        if j % 2 == 0:
+                            ax[i,j].imshow(original_images[i*4+(j//2)].squeeze(), cmap=cmap)
+                            ax[i,j].set_title('Orig.')
+                        else:
+                            ax[i,j].imshow(reconstructed_images[i*4+(j//2)].squeeze(), cmap=cmap)
+                            ax[i,j].set_title('Reconst.')
                         ax[i,j].axis('off')
                     else:
-                        ax[i,j].imshow(reconstructed_images[i*4+(j//2)])
-                        ax[i,j].axis('off')
+                        if j % 2 == 0:
+                            ax[j].imshow(original_images[j//2].squeeze(), cmap=cmap)
+                            ax[j].set_title('Orig.')
+                        else:
+                            ax[j].imshow(reconstructed_images[j//2].squeeze(), cmap=cmap)
+                            ax[j].set_title('Reconst.')
+                        ax[j].axis('off')
         fig.suptitle(title)
 
         # save plot
@@ -232,7 +240,7 @@ class Visualizer:
         plt.savefig(os.path.join(save_path, fig_name))
         plt.close()
 
-    def plot_reverse_process(self, diffusion_model: DiffusionModel, t: List[int], 
+    def plot_reverse_process(self, samples: List[np.ndarray], t: List[int], 
                              save_path: str = os.path.join(PROJECT_BASE_DIR,'results','images','reverse_process'),
                              fig_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Reverse-Process.png",
                              title: str = 'Reverse Process', cmap: str = 'gray'):
@@ -240,16 +248,15 @@ class Visualizer:
         Plot the reverse process of the diffusion model
 
         Inputs:
-        - diffusion_model: Diffusion model
+        - samples: List of samples of shape [num_samples, C, H, W] corresponding to all time steps
         - save_path: Path to save-directory
         - fig_name: Name of the saved file
         '''
-        x_t = diffusion_model.all_step_sample(n_samples=1)
-        x_t.reverse()
+        samples.reverse()
         # create plot
         fig, ax = plt.subplots(1, len(t), figsize=(10,6))
         for idx in range(len(t)):
-            ax[idx].imshow(x_t[t[idx]][0].squeeze(), cmap=cmap)
+            ax[idx].imshow(samples[t[idx]][0].squeeze(), cmap=cmap)
             ax[idx].axis('off')
             ax[idx].set_title(f't={t[idx]}')
         fig.suptitle(title)
