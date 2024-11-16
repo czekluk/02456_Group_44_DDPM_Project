@@ -76,7 +76,7 @@ class Generator:
 if __name__ == "__main__":
     model = Model(ch=64, out_ch=1, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
     gen = Generator(DiffusionModel(model, T=1000),
-                    os.path.join(PROJECT_BASE_DIR, 'results', 'models', '2024-11-16_14-41-41-Epoch_   4-FID_0.0-DiffusionModel.pth'))
+                    os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-16_21-08-13-Epoch_0004-FID_5.76-DiffusionModel.pth'))
     
     samples = gen.generate(num_samples=16, plot=True)
     all_samples = gen.generate_all_steps(num_samples=1, plot=True)

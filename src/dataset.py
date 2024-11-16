@@ -12,7 +12,7 @@ class DiffusionDataModule:
     def get_MNIST_dataloader(self, train: bool, batch_size: int, shuffle: bool, transform):
         dataset = datasets.MNIST(root=self.data_dir, train=train, transform=transform, download=True)
         # NOTE: uncomment if you want to limit the dataset for testing purposes
-        #dataset = Subset(dataset, list(range(128)))
+        # dataset = Subset(dataset, list(range(128)))
         return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
     def get_CIFAR10_dataloader(self, train: bool, batch_size: int, shuffle: bool, transform):

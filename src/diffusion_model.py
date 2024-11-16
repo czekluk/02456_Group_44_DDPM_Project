@@ -94,6 +94,45 @@ class DiffusionModel:
         
         # return loss (for logging purposes)
         return loss.item()
+    
+    def val_loss(self, x: torch.Tensor):
+        '''
+        Calculate the validation loss of the model.
+
+        Inputs:
+        - x: Batch of validation images [B, C, H, W]
+
+        Returns:
+        - loss: Validation loss of the model
+        '''
+        self.model.eval()
+        with torch.no_grad():
+            # sample t from uniform distribution
+            t = torch.randint(1, self.T+1, (x.shape[0], 1), device=self.device)
+
+            # sample e from N(0,I)
+            e = self.normal.rsample(sample_shape=x.shape).to(self.device)
+
+            # calculate alpha_t for every batch image
+            ats = self.schedule.alpha_dash_list(t.squeeze().tolist()).to(self.device)
+            # ats is of shape [batch_size, 1], expand it to match the shape of x (which is [batch_size, C, H, W])
+            ats = ats.view(-1, 1, 1, 1)
+            ats = ats.expand(-1, x.shape[1], x.shape[2], x.shape[3])  # expand to (batch_size, C, H, W)
+
+            # calculate model inputs
+            x = x.to(self.device)
+            t = t.to(self.device)
+
+            x = torch.sqrt(ats) * x + torch.sqrt(1- ats) * e
+
+            # calculate model outputs
+            e_pred = self.model(x, t.squeeze())
+
+            # calculate loss
+            loss = self.criterion(e, e_pred)
+
+            # return loss (for logging purposes)
+            return loss.item()
 
     def forward(self, x:torch.Tensor, t: int):
         '''

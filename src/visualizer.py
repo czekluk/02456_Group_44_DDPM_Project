@@ -16,7 +16,7 @@ class Visualizer:
     def __init__(self):
         pass
 
-    def plot_loss(self, loss: List[float], 
+    def plot_loss(self, loss: List[float], val_loss: List[float],
                   save_path: str = os.path.join(PROJECT_BASE_DIR,'results','plots','training'),
                   fig_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Loss-DiffusionModel.png"):
         '''
@@ -24,17 +24,20 @@ class Visualizer:
 
         Inputs:
         - loss: List of loss values
+        - val_loss: List of validation loss values
         - save_path: Path to save-directory
         - fig_name: Name of the saved file
         '''
         # create plot
         fig, ax = plt.subplots(figsize=(10,6))
-        ax.plot(loss, color='blue')
+        ax.plot(loss, color='blue', label='Train Loss')
+        ax.plot(val_loss, color='red', label='Validation Loss')
         ax.set_xlabel('Iteration')
         ax.set_ylabel('Loss')
         ax.set_title('Loss of DDPM')
         ax.set_xticks(np.arange(0, len(loss), step=10))
         ax.grid(True)
+        plt.legend()
 
         # save plot
         if not os.path.exists(save_path):
@@ -252,7 +255,7 @@ class Visualizer:
         - save_path: Path to save-directory
         - fig_name: Name of the saved file
         '''
-        samples.reverse()
+        samples.reverse() # reverse order of samples
         # create plot
         fig, ax = plt.subplots(1, len(t), figsize=(10,6))
         for idx in range(len(t)):

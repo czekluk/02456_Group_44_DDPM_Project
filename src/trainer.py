@@ -9,7 +9,7 @@ from tqdm import tqdm
 from datetime import datetime
 
 from diffusion_model import DiffusionModel
-from metrics import FIDScore, InceptionScore
+from metrics import FIDScore, InceptionScore, tfFIDScore
 from logger import Logger
 
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,7 +27,7 @@ class Trainer:
         self.num_epochs = num_epochs
         self.logger = Logger()
 
-    def train(self, save_on_epoch: bool = False, plotting: bool = False):
+    def train(self, save_on_epoch: bool = False, plotting: bool = False, n_scores: int = 5):
         '''
         Method to train the diffusion model.
 
@@ -47,16 +47,27 @@ class Trainer:
             # Validation loop
             epoch_fid = []
             epoch_is = []
+            epoch_val_loss = []
             for minibatch_idx, (x, _) in tqdm(enumerate(self.val_loader), unit='minibatch', total=len(self.val_loader)):
                 x = x.to(self.diffusion_model.device)
-                fid_score, is_score = self.validate(x)
-                epoch_fid.append(fid_score)
-                epoch_is.append(is_score)
-            print(f'Epoch: {epoch} | FID Score: {np.mean(epoch_fid)} | IS Score: {np.mean(epoch_is)}')
+                val_loss = self.diffusion_model.val_loss(x)
+                epoch_val_loss.append(val_loss)
+                # Calculate scores every n_scores epochs
+                if epoch+1 % n_scores == 0:
+                    fid_score, is_score = self.validate(x)
+                    epoch_fid.append(fid_score)
+                    epoch_is.append(is_score)
+            if epoch+1 % n_scores == 0:
+                fid = np.mean(epoch_fid)
+                is_score = np.mean(epoch_is)
+            else:
+                fid = None
+                is_score = None
+            print(f'Epoch: {epoch+1} | Validation Loss: {np.mean(val_loss)} | FID Score: {fid} | IS Score: {is_score}')
 
             # Log the training & validation metrics
-            self.logger.log_training(np.mean(epoch_loss), np.mean(epoch_fid), np.mean(epoch_is))
-            self.logger.log_model(self.diffusion_model, epoch)
+            self.logger.log_training(np.mean(epoch_loss), np.mean(val_loss), fid, is_score)
+            self.logger.log_model(self.diffusion_model, epoch+1)
 
         # Return the logger of the training process
         return self.logger
@@ -72,8 +83,9 @@ class Trainer:
         - fid: Frechet Inception Distance
         - is_score: Inception Score
         '''
-        fid = FIDScore()
-        iSc = InceptionScore()
+        # fid = FIDScore()
+        # iSc = InceptionScore()
+        fid = tfFIDScore()
 
         self.diffusion_model.model.eval() # should possibly be inside the sample method
         with torch.no_grad():
@@ -81,9 +93,10 @@ class Trainer:
             gen = self.diffusion_model.sample(len(x))
 
             # Calculate FID score
-            fid_score = fid.calculate_fid(x, gen)
+            fid_score = fid.calculate_fid(x, torch.from_numpy(gen))
 
             # Calculate Inception Score
-            is_score = iSc.calculate_is(gen)
+            # is_score = iSc.calculate_is(gen)
+            is_score = 0
         
         return fid_score, is_score
