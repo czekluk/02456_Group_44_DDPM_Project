@@ -39,7 +39,7 @@ class DiffusionModel:
 
         # Sampling related parameters
 
-    def train(self, x: torch.Tensor, optimizer: torch.optim.Optimizer):
+    def train(self, x: torch.Tensor, optimizer: torch.optim.Optimizer, verbose: bool = False):
         '''
         Single training iteration of the diffusion model.
 
@@ -89,7 +89,8 @@ class DiffusionModel:
         optimizer.step()
         
         # print loss
-        print(f'Loss: {loss.item()}')
+        if verbose:
+            print(f'Loss: {loss.item()}')
         
         # return loss (for logging purposes)
         return loss.item()

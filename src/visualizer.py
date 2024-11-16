@@ -37,6 +37,8 @@ class Visualizer:
         ax.grid(True)
 
         # save plot
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
         plt.savefig(os.path.join(save_path, fig_name))
         plt.close()
 
@@ -86,6 +88,8 @@ class Visualizer:
         ax.axis('off')
 
         # save plot
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
         plt.savefig(os.path.join(save_path, fig_name))
         plt.close()
 
@@ -114,40 +118,45 @@ class Visualizer:
         fig.suptitle(title)
 
         # save plot
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
         plt.savefig(os.path.join(save_path, fig_name))
         plt.close()
 
-    def plot_multiple_images(self, images: List[np.ndarray], 
+    def plot_multiple_images(self, images: np.ndarray, 
                              save_path: str = os.path.join(PROJECT_BASE_DIR,'results','images','generated'),
                              fig_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Generated-Images.png",
-                             title: str = 'Generated Images'):
+                             title: str = 'Generated Images', cmap: str = 'gray'):
         '''
         Plot multiple images in a grid
 
         Inputs:
-        - images: List of images to plot (should be less than 16)
+        - images: numpy array of shape [B, C, H, W]
         - save_path: Path to save-directory
         - fig_name: Name of the saved file
         '''
+        images = images.cpu().detach().numpy()
         # preprocessing for plot
-        if len(images) >= 16:
+        if images.shape[0] >= 16:
             images = images[:16]
             print('Only the first 16 images will be plotted')
-        if len(images) < 4:
+        if images.shape[0] < 4:
             num_rows = 1
         else:
-            num_rows = len(images) // 4
+            num_rows = images.shape[0] // 4
 
         # create plot
         fig, ax = plt.subplots(num_rows, 4, figsize=(10,10))
         for i in range(num_rows):
             for j in range(4):
-                if i*4+j < len(images):
-                    ax[i,j].imshow(images[i*4+j])
+                if i*4+j < images.shape[0]:
+                    ax[i,j].imshow(images[i*4+j].squeeze(), cmap=cmap)
                     ax[i,j].axis('off')
         fig.suptitle(title)
 
         # save plot
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
         plt.savefig(os.path.join(save_path, fig_name))
         plt.close()
 
@@ -190,6 +199,8 @@ class Visualizer:
         fig.suptitle(title)
 
         # save plot
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
         plt.savefig(os.path.join(save_path, fig_name))
         plt.close()
 
@@ -216,13 +227,15 @@ class Visualizer:
         fig.suptitle(title)
 
         # save plot
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
         plt.savefig(os.path.join(save_path, fig_name))
         plt.close()
 
     def plot_reverse_process(self, diffusion_model: DiffusionModel, t: List[int], 
                              save_path: str = os.path.join(PROJECT_BASE_DIR,'results','images','reverse_process'),
                              fig_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Reverse-Process.png",
-                             title: str = 'Reverse Process'):
+                             title: str = 'Reverse Process', cmap: str = 'gray'):
         '''
         Plot the reverse process of the diffusion model
 
@@ -236,11 +249,13 @@ class Visualizer:
         fig, ax = plt.subplots(1, len(t), figsize=(10,6))
         for idx in range(len(t)):
             x_t = diffusion_model.sample(n_samples=1, t=t[idx])
-            ax[idx].imshow(x_t.squeeze().detach().cpu().numpy())
+            ax[idx].imshow(x_t.squeeze().detach().cpu().numpy(), cmap=cmap)
             ax[idx].axis('off')
             ax[idx].set_title(f't={t[idx]}')
         fig.suptitle(title)
 
         # save plot
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
         plt.savefig(os.path.join(save_path, fig_name))
         plt.close()

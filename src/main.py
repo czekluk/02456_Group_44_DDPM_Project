@@ -21,13 +21,13 @@ def main():
     data_module = DiffusionDataModule()
     train_loader = data_module.get_MNIST_dataloader(
         train=True,
-        batch_size=32,
+        batch_size=128,
         shuffle=True,
         transform=transforms.Compose([transforms.ToTensor()])
     )
     val_loader = data_module.get_MNIST_dataloader(
         train=False,
-        batch_size=32,
+        batch_size=128,
         shuffle=True,
         transform=transforms.Compose([transforms.ToTensor()])
     )
@@ -63,10 +63,9 @@ def main():
     visualizer.plot_reverse_process(diffusion_model, [0, 2, 5, 7, 9])
 
     # Sample from the model
-    samples = diffusion_model.sample(n_samples=10)
-    images_list = [sample.cpu().detach().numpy() for sample in samples[-1]] 
+    samples = diffusion_model.sample(n_samples=16)
     # NOTE: Does not plot properly. Samples is a batch of images [batch_size, C, H, W]
-    #visualizer.plot_multiple_images(images_list)
+    visualizer.plot_multiple_images(samples)
 
 if __name__ == "__main__":
     main()

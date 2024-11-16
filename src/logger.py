@@ -77,8 +77,10 @@ class Logger:
         '''
         # Save the logs
         epochs = list(np.arange(0, len(self.loss)))
-        data = [epochs, self.loss, self.fid_scores, self.is_scores]
+        data = [[epochs, self.loss, self.fid_scores, self.is_scores]]
         file_name = os.path.join(PROJECT_BASE_DIR, 'results', 'logs', f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Logs.csv")
+        if not os.path.exists(os.path.dirname(file_name)):
+            os.makedirs(os.path.dirname(file_name))
         with open(file_name, 'w') as f:
             writer = csv.writer(f)
             writer.writerows(data)
