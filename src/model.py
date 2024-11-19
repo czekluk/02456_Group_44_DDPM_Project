@@ -10,6 +10,7 @@ import math
 
 def nonlinearity(x):
     return F.silu(x)
+
 def get_timestep_embedding(timesteps, embedding_dim):
     """
     Build sinusoidal embeddings.
@@ -63,11 +64,11 @@ class ResNetBlock(nn.Module):
         self.out_ch = out_ch or in_ch
         self.dropout = dropout
 
-        self.norm1 = nn.GroupNorm(num_groups=32, num_channels=in_ch, affine=True)
+        self.norm1 = nn.GroupNorm(num_groups=in_ch//2, num_channels=in_ch, affine=True)
         self.conv1 = nn.Conv2d(in_channels=in_ch, out_channels=self.out_ch, kernel_size=3, padding=1)
         self.temb_proj = nn.Linear(temb_ch, self.out_ch)
 
-        self.norm2 = nn.GroupNorm(num_groups=32, num_channels=self.out_ch)
+        self.norm2 = nn.GroupNorm(num_groups=in_ch//2, num_channels=self.out_ch)
         self.conv2 = nn.Conv2d(in_channels=self.out_ch, out_channels=self.out_ch, kernel_size=3, padding=1)
 
         
@@ -94,7 +95,7 @@ class ResNetBlock(nn.Module):
 class AttnBlock(nn.Module):
     def __init__(self, channels):
         super().__init__()
-        self.norm = nn.GroupNorm(num_groups=32, num_channels=channels)
+        self.norm = nn.GroupNorm(num_groups=channels//2, num_channels=channels)
         self.q = nn.Linear(channels, channels)
         self.k = nn.Linear(channels, channels)
         self.v = nn.Linear(channels, channels)
@@ -146,12 +147,12 @@ class Upsample(nn.Module):
             return self.upsample(x)
 
 class Model(nn.Module):
-    def __init__(self, ch, out_ch, ch_down_mult=(1, 2, 4, 8), num_res_blocks=2,
-                 attn_resolutions=[16], dropout=0., resamp_with_conv=True):
+    def __init__(self, ch, out_ch, ch_down_mult=(2, 4, 8, 16), num_res_blocks=2,
+                 attn_resolutions=[64], dropout=0., resamp_with_conv=True):
         super().__init__()
         self.ch = ch
         self.out_ch = out_ch
-        self.num_resolutions = len(ch_down_mult)
+        self.num_levels = len(ch_down_mult)
         ch_up_mult = [1] + list(ch_down_mult[:-1])
         self.num_res_blocks = num_res_blocks
         self.attn_resolutions = attn_resolutions
@@ -164,40 +165,41 @@ class Model(nn.Module):
         # Initial convolution
         self.conv_in = nn.LazyConv2d(ch, kernel_size=3, padding=1)
 
-        # Downsampling
+        # Downsampling block of Unet
         self.downs = nn.ModuleList()
         in_ch = ch
-        for level in range(self.num_resolutions):
-            for _ in range(self.num_res_blocks):
+        for level in range(self.num_levels):
+
+            for index in range(self.num_res_blocks):
                 self.downs.append(ResNetBlock(in_ch, temb_ch=ch * 4, out_ch=in_ch, dropout=dropout))
-                if in_ch in attn_resolutions:
-                    self.downs.append(AttnBlock(out_ch))
+                if in_ch in attn_resolutions and index < self.num_res_blocks - 1:
+                    self.downs.append(AttnBlock(in_ch))
             out_ch = ch * ch_down_mult[level]
             self.downs.append(Downsample(in_ch, out_ch, self.resamp_with_conv))
             in_ch = out_ch
 
-        # Middle
+        # Bottleneck
         self.mid = nn.ModuleList([
             ResNetBlock(in_ch, temb_ch=ch * 4, out_ch=in_ch, dropout=dropout),
             AttnBlock(in_ch),
             ResNetBlock(in_ch, temb_ch=ch * 4, out_ch=in_ch, dropout=dropout)
         ])
 
-        # Upsampling
+        # Upsampling block of the Unet
         self.ups = nn.ModuleList()
-        for level in reversed(range(self.num_resolutions)):
+        for level in reversed(range(self.num_levels)):
             out_ch = ch * ch_up_mult[level]
             self.ups.append(Upsample(in_ch, out_ch, self.resamp_with_conv))
             out_ch = out_ch*2 # concat with skip connection
             in_ch = out_ch
-            for _ in range(self.num_res_blocks + 1):
+            for index in range(self.num_res_blocks + 1):
                 self.ups.append(ResNetBlock(in_ch, temb_ch=ch * 4, out_ch=in_ch, dropout=dropout))
-                if out_ch in attn_resolutions:
+                if out_ch//2 in attn_resolutions and index < self.num_res_blocks - 1: # so that it happens on the same level as in downsampling
                     self.ups.append(AttnBlock(out_ch))
                 
 
         # Final normalization and output
-        self.norm_out = nn.GroupNorm(num_groups=32, num_channels=in_ch)
+        self.norm_out = nn.GroupNorm(num_groups=in_ch//2, num_channels=in_ch)
         self.conv_out = nn.Conv2d(in_ch, self.out_ch, kernel_size=3, padding=1)
 
     def forward(self, x, t):
@@ -232,13 +234,13 @@ class Model(nn.Module):
             elif isinstance(layer, Upsample): #start of layer
                 h = layer(h)
                 from_down = hs.pop()
+                assert from_down.shape == h.shape
                 h=torch.cat([h,from_down ], dim=1)
             else:
                 h = layer(h)
 
         h = nonlinearity(self.norm_out(h))
         return self.conv_out(h)
-
 
 # Load MNIST dataset
 def test_model():
@@ -252,7 +254,7 @@ def test_model():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print("DEVICE: ", device)
     # Initialize the model
-    model = Model(ch=64, out_ch=1, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
+    model = Model(ch=64, out_ch=1, ch_down_mult=(2, 4), num_res_blocks=2, attn_resolutions=[64], dropout=0.1, resamp_with_conv=True)
     model = model.to(device)
 
     # Test the forward process
