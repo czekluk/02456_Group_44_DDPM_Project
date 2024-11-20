@@ -1,62 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch import einsum
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
-import math
-
-# Assuming the `nn` module has helper functions like conv2d, dense, etc.
-
-def nonlinearity(x):
-    return F.silu(x)
-
-def get_timestep_embedding(timesteps, embedding_dim):
-    """
-    Build sinusoidal embeddings.
-    This matches the implementation in tensor2tensor, but differs slightly
-    from the description in Section 3.5 of "Attention Is All You Need".
-    """
-    device = timesteps.device  # Get the device of `timesteps`
-
-    assert len(timesteps.shape) == 1  # Ensure `timesteps` is a 1D tensor
-
-    half_dim = embedding_dim // 2
-    emb_scale = math.log(10000) / (half_dim - 1)
-    
-    # Ensure that all tensors are created directly on `device`
-    emb = torch.exp(torch.arange(half_dim, device=device, dtype=torch.float32) * -emb_scale)
-    emb = timesteps[:, None].float().to(device) * emb[None, :]  # Multiply on `device`
-    
-    # Concatenate sinusoidal and cosinusoidal embeddings
-    emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=1).to(device)
-    
-    # Pad if embedding_dim is odd
-    if embedding_dim % 2 == 1:
-        emb = F.pad(emb, (0, 1)).to(device)
-    
-    assert emb.shape == (timesteps.shape[0], embedding_dim)
-    return emb
-
-def normalize(x, temb, name):
-    # Replacing group_norm from tf.contrib
-    num_groups = 32  # You may change this as needed
-    return nn.GroupNorm(num_groups=num_groups, num_channels=x.shape[1])(x)
-
-def upsample(x, with_conv):
-    B, C, H, W = x.shape
-    x = nn.Upsample(size=(H * 2, W * 2), mode='nearest')(x)
-    if with_conv:
-        x = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=3, stride=1, padding=1)(x)
-    return x
-
-def downsample(x, with_conv):
-    B, C, H, W = x.shape
-    if with_conv:
-        x = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=3, stride=2, padding=1)(x)
-    else:
-        x = F.avg_pool2d(x, 2, stride=2)
-    return x
+from utils import get_timestep_embedding, normalize, upsample, downsample
 
 class ResNetBlock(nn.Module):
     def __init__(self, in_ch, temb_ch, out_ch=None,  dropout=0.):
@@ -76,13 +23,13 @@ class ResNetBlock(nn.Module):
 
     def forward(self, x, temb):
         x=self.norm1(x)
-        h = nonlinearity(x)
+        h = F.silu(x)
         h = self.conv1(h)
         
-        temb = nonlinearity(self.temb_proj(temb))[:, :, None, None]
+        temb = F.silu(self.temb_proj(temb))[:, :, None, None]
         h += temb
 
-        h = nonlinearity(self.norm2(h))
+        h = F.silu(self.norm2(h))
         h = F.dropout(h, p=self.dropout, training=self.training)
         h = self.conv2(h)
 
@@ -207,8 +154,8 @@ class Model(nn.Module):
         assert t.dtype in [torch.int32, torch.int64]
         
         temb = get_timestep_embedding(t, self.temb_dense0.in_features)
-        temb = nonlinearity(self.temb_dense0(temb))
-        temb = nonlinearity(self.temb_dense1(temb))
+        temb = F.silu(self.temb_dense0(temb))
+        temb = F.silu(self.temb_dense1(temb))
 
         h = self.conv_in(x)
        
@@ -239,7 +186,7 @@ class Model(nn.Module):
             else:
                 h = layer(h)
 
-        h = nonlinearity(self.norm_out(h))
+        h = F.silu(self.norm_out(h))
         return self.conv_out(h)
 
 # Load MNIST dataset
