@@ -72,6 +72,31 @@ class Visualizer:
         plt.savefig(os.path.join(save_path, fig_name))
         plt.close()
 
+    def plot_fid_score(self, fid_score: List[float], 
+                          save_path: str = os.path.join(PROJECT_BASE_DIR,'results','plots','evaluation'),
+                          fig_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-FID-DiffusionModel.png"):
+        '''
+        Plot the inception score and FID score over evaluation iterations
+
+        Inputs:
+        - fid_score: List of FID scores
+        - save_path: Path to save-directory
+        - fig_name: Name of the saved file
+        '''
+        # create plot
+        fig, ax = plt.subplots(figsize=(10,6))
+        ax.plot(fid_score, color='red', label='FID Score')
+        ax.set_xlabel('Iteration')
+        ax.set_ylabel('Score')
+        ax.set_title(' Approximated FID Score of DDPM on Validation Set')
+        ax.set_xticks(np.arange(0, len(fid_score), step=10))
+        ax.legend()
+        ax.grid(True)
+
+        # save plot
+        plt.savefig(os.path.join(save_path, fig_name))
+        plt.close()
+
     def plot_single_image(self, image: np.ndarray, 
                           save_path: str = os.path.join(PROJECT_BASE_DIR,'results','images','generated'),
                           fig_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Generated-Image.png",
