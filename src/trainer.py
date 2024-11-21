@@ -46,27 +46,20 @@ class Trainer:
 
             # Validation loop
             epoch_fid = []
-            epoch_is = []
             epoch_val_loss = []
             for minibatch_idx, (x, _) in tqdm(enumerate(self.val_loader), unit='minibatch', total=len(self.val_loader)):
                 x = x.to(self.diffusion_model.device)
                 val_loss = self.diffusion_model.val_loss(x)
                 epoch_val_loss.append(val_loss)
-                # Calculate scores every n_scores epochs
-                if epoch+1 % n_scores == 0:
-                    fid_score, is_score = self.validate(x)
+                # Calculate fid score for first 5 minibatches
+                if minibatch_idx < 5:
+                    fid_score= self.validate(x)
                     epoch_fid.append(fid_score)
-                    epoch_is.append(is_score)
-            if epoch+1 % n_scores == 0:
-                fid = np.mean(epoch_fid)
-                is_score = np.mean(epoch_is)
-            else:
-                fid = None
-                is_score = None
-            print(f'Epoch: {epoch+1} | Validation Loss: {np.mean(val_loss)} | FID Score: {fid} | IS Score: {is_score}')
+            fid = np.mean(epoch_fid)
+            print(f'Epoch: {epoch+1} | Validation Loss: {np.mean(val_loss)} | Approx. FID Score: {fid}')
 
             # Log the training & validation metrics
-            self.logger.log_training(np.mean(epoch_loss), np.mean(val_loss), fid, is_score)
+            self.logger.log_training(np.mean(epoch_loss), np.mean(val_loss), fid)
             self.logger.log_model(self.diffusion_model, epoch+1)
 
         # Return the logger of the training process
@@ -97,6 +90,5 @@ class Trainer:
 
             # Calculate Inception Score
             # is_score = iSc.calculate_is(gen)
-            is_score = 0
         
-        return fid_score, is_score
+        return fid_score
