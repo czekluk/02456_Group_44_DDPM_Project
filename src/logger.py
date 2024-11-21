@@ -54,12 +54,14 @@ class Logger:
         '''
         if self.best_model is None:
             self.best_model = model
-            self.best_scores = np.array([self.loss[-1], self.val_loss[-1], self.fid_scores[-1], self.is_scores[-1]])
+            # self.best_scores = np.array([self.loss[-1], self.val_loss[-1], self.fid_scores[-1], self.is_scores[-1]])
+            self.best_scores = np.array([self.loss[-1], self.val_loss[-1], self.fid_scores[-1], self.fid_scores[-1]])
             self.best_epoch = epoch
         else:
             if self.val_loss[-1] < self.val_loss[-2]:
                 self.best_model = model
-                self.best_scores = np.array([self.loss[-1], self.val_loss[-1], self.fid_scores[-1], self.is_scores[-1]])
+                # self.best_scores = np.array([self.loss[-1], self.val_loss[-1], self.fid_scores[-1], self.is_scores[-1]])
+                self.best_scores = np.array([self.loss[-1], self.val_loss[-1], self.fid_scores[-1], self.fid_scores[-1]])
                 self.best_epoch = epoch
 
     def plot(self):
@@ -82,7 +84,7 @@ class Logger:
         file_name = os.path.join(PROJECT_BASE_DIR, 'results', 'logs', f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Logs.json")
         if not os.path.exists(os.path.dirname(file_name)):
             os.makedirs(os.path.dirname(file_name))
-        json_dict = {'epochs': epochs, 'loss': self.loss, 'val_loss': self.val_loss, 'fid_scores': self.fid_scores}
+        json_dict = {'epochs': list(map(int, epochs)), 'loss': list(map(float, self.loss)), 'val_loss': list(map(float, self.val_loss)), 'fid_scores': list(map(float, self.fid_scores))}
         with open(file_name, 'w') as f:
             json.dump(json_dict, f)
         print(f'Logs saved to {file_name}')

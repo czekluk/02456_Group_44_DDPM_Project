@@ -200,8 +200,8 @@ def test_model():
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print("DEVICE: ", device)
-    # Initialize the model
-    model = Model(ch=64, out_ch=1, ch_down_mult=(2, 4), num_res_blocks=2, attn_resolutions=[64], dropout=0.1, resamp_with_conv=True)
+    
+    model = Model(ch=64, out_ch=1, ch_down_mult=(2, 4), num_res_blocks=3, attn_resolutions=[64, 128], dropout=0.1, resamp_with_conv=True)
     model = model.to(device)
 
     # Test the forward process
