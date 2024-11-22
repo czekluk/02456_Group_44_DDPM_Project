@@ -32,7 +32,7 @@ class Generator:
             if num_samples >= 2:
                 self.visualizer.plot_multiple_images(samples)
             else:
-                self.visualizer.plot_single_image(samples[0].squeeze())
+                self.visualizer.plot_single_image(samples)
 
         return samples
     
@@ -70,7 +70,7 @@ class Generator:
             if x.shape[0] >= 2:
                 self.visualizer.plot_reconstructed_images(x, recon_x)
             else:
-                self.visualizer.plot_reconstructed_image(x.squeeze(), recon_x.squeeze())
+                self.visualizer.plot_reconstructed_image(x, recon_x)
 
         return recon_x
 
