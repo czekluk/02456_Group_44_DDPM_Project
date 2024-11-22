@@ -29,6 +29,11 @@ class Logger:
         self.best_epoch = None
         self.best_scores = np.array([np.inf, np.inf, 0])
 
+        # Last model
+        self.last_model = None
+        self.last_epoch = None
+        self.last_scores = np.array([np.inf, np.inf, 0])
+
     def log_training(self, loss, val_loss, fid_score):
         '''
         Method to log the training & validation metrics.
@@ -54,15 +59,17 @@ class Logger:
         '''
         if self.best_model is None:
             self.best_model = model
-            # self.best_scores = np.array([self.loss[-1], self.val_loss[-1], self.fid_scores[-1], self.is_scores[-1]])
-            self.best_scores = np.array([self.loss[-1], self.val_loss[-1], self.fid_scores[-1], self.fid_scores[-1]])
+            self.best_scores = np.array([self.loss[-1], self.val_loss[-1], self.fid_scores[-1]])
             self.best_epoch = epoch
         else:
-            if self.val_loss[-1] < self.val_loss[-2]:
+            if self.val_loss[-1] == min(self.val_loss):
                 self.best_model = model
-                # self.best_scores = np.array([self.loss[-1], self.val_loss[-1], self.fid_scores[-1], self.is_scores[-1]])
-                self.best_scores = np.array([self.loss[-1], self.val_loss[-1], self.fid_scores[-1], self.fid_scores[-1]])
+                self.best_scores = np.array([self.loss[-1], self.val_loss[-1], self.fid_scores[-1]])
                 self.best_epoch = epoch
+
+        self.last_model = model
+        self.last_scores = np.array([self.loss[-1], self.val_loss[-1], self.fid_scores[-1]])
+        self.last_epoch = epoch
 
     def plot(self):
         '''
@@ -84,10 +91,14 @@ class Logger:
         file_name = os.path.join(PROJECT_BASE_DIR, 'results', 'logs', f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Logs.json")
         if not os.path.exists(os.path.dirname(file_name)):
             os.makedirs(os.path.dirname(file_name))
-        json_dict = {'epochs': list(map(int, epochs)), 'loss': list(map(float, self.loss)), 'val_loss': list(map(float, self.val_loss)), 'fid_scores': list(map(float, self.fid_scores))}
+        json_dict = {'epochs': [int(item) for item in epochs], 
+                     'loss': [float(item) for item in self.loss], 
+                     'val_loss': [float(item) for item in self.val_loss], 
+                     'fid_scores': [float(item) for item in self.fid_scores]}
         with open(file_name, 'w') as f:
             json.dump(json_dict, f)
         print(f'Logs saved to {file_name}')
 
         # Save the best model
-        self.best_model.save(model_name=f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Epoch_{self.best_epoch:04}-ValLoss_{self.best_scores[1]:.2f}-DiffusionModel.pth")
+        self.best_model.save(model_name=f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Epoch_{self.best_epoch:04}-ValLoss_{self.best_scores[1]:.2f}-BestDiffusionModel.pth")
+        self.last_model.save(model_name=f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Epoch_{self.last_epoch:04}-ValLoss_{self.last_scores[1]:.2f}-LastDiffusionModel.pth")

@@ -111,6 +111,7 @@ class Visualizer:
         '''
         # create plot
         fig, ax = plt.subplots(figsize=(10,6))
+        #image = (image + 1)/2
         ax.imshow(image, cmap=cmap)
         ax.set_title(title)
         ax.axis('off')
@@ -137,9 +138,11 @@ class Visualizer:
         '''
         # create plot
         fig, ax = plt.subplots(1, 2, figsize=(10,6))
+        #original_image = (original_image + 1) / 2
         ax[0].imshow(original_image, cmap=cmap)
         ax[0].set_title('Original Image')
         ax[0].axis('off')
+        #reconstructed_image = (reconstructed_image + 1) / 2
         ax[1].imshow(reconstructed_image, cmap=cmap)
         ax[1].set_title('Reconstructed Image')
         ax[1].axis('off')
@@ -175,11 +178,15 @@ class Visualizer:
             for j in range(4):
                 if num_rows > 1:
                     if i*4+j < images.shape[0]:
-                        ax[i,j].imshow(images[i*4+j].squeeze(), cmap=cmap)
+                        img = np.transpose(images[i*4+j],(1,2,0))
+                        #img = (img + 1) / 2
+                        ax[i,j].imshow(img, cmap=cmap)
                     ax[i,j].axis('off')
                 else:
                     if j < images.shape[0]:
-                        ax[j].imshow(images[j].squeeze(), cmap=cmap)
+                        img = np.transpose(images[j],(1,2,0))
+                        #img = (img + 1) / 2
+                        ax[j].imshow(img, cmap=cmap)
                     ax[j].axis('off')
         fig.suptitle(title)
 
@@ -218,18 +225,26 @@ class Visualizer:
                 if i*4+(j//2) < len(original_images):
                     if num_rows > 1:
                         if j % 2 == 0:
-                            ax[i,j].imshow(original_images[i*4+(j//2)].squeeze(), cmap=cmap)
+                            img = np.transpose(original_images[i*4+(j//2)], (1,2,0))
+                            #img = (img + 1) / 2
+                            ax[i,j].imshow(img, cmap=cmap)
                             ax[i,j].set_title('Orig.')
                         else:
-                            ax[i,j].imshow(reconstructed_images[i*4+(j//2)].squeeze(), cmap=cmap)
+                            img = np.transpose(reconstructed_images[i*4+(j//2)],(1,2,0))
+                            #img = (img + 1) / 2
+                            ax[i,j].imshow(img, cmap=cmap)
                             ax[i,j].set_title('Reconst.')
                         ax[i,j].axis('off')
                     else:
                         if j % 2 == 0:
-                            ax[j].imshow(original_images[j//2].squeeze(), cmap=cmap)
+                            img = np.transpose(original_images[j//2],(1,2,0))
+                            #img = (img + 1) / 2
+                            ax[j].imshow(img, cmap=cmap)
                             ax[j].set_title('Orig.')
                         else:
-                            ax[j].imshow(reconstructed_images[j//2].squeeze(), cmap=cmap)
+                            img = np.transpose(reconstructed_images[j//2],(1,2,0))
+                            #img = (img + 1) / 2
+                            ax[j].imshow(img, cmap=cmap)
                             ax[j].set_title('Reconst.')
                         ax[j].axis('off')
         fig.suptitle(title)
@@ -257,7 +272,10 @@ class Visualizer:
         fig, ax = plt.subplots(1, len(t), figsize=(10,4))
         for idx in range(len(t)):
             x_t = diffusion_model.forward(x, t[idx])
-            ax[idx].imshow(x_t[0].squeeze().detach().cpu().numpy(), cmap=cmap)
+            x_t = x_t.permute(0, 2, 3, 1).detach().cpu().numpy()
+            #x_t = (x_t[0] + 1) / 2
+            x_t = x_t[0]
+            ax[idx].imshow(x_t, cmap=cmap)
             ax[idx].axis('off')
             ax[idx].set_title(f't={t[idx]}')
         fig.suptitle(title)
@@ -284,7 +302,9 @@ class Visualizer:
         # create plot
         fig, ax = plt.subplots(1, len(t), figsize=(10,6))
         for idx in range(len(t)):
-            ax[idx].imshow(samples[t[idx]][0].squeeze(), cmap=cmap)
+            sample = np.transpose(samples[t[idx]][0],(1,2,0))
+            #sample = (sample + 1) / 2
+            ax[idx].imshow(sample, cmap=cmap)
             ax[idx].axis('off')
             ax[idx].set_title(f't={t[idx]}')
         fig.suptitle(title)

@@ -27,7 +27,7 @@ class Trainer:
         self.num_epochs = num_epochs
         self.logger = Logger()
 
-    def train(self, save_on_epoch: bool = False, plotting: bool = False, n_scores: int = 5):
+    def train(self):
         '''
         Method to train the diffusion model.
 
@@ -42,7 +42,7 @@ class Trainer:
                 x = x.to(self.diffusion_model.device)
                 loss = self.diffusion_model.train(x, self.optimizer)
                 epoch_loss.append(loss)
-            print(f'Epoch: {epoch} | Train Loss: {np.mean(epoch_loss)}')
+            print(f'Epoch: {epoch+1} | Train Loss: {np.mean(epoch_loss)}')
 
             # Validation loop
             epoch_fid = []
@@ -53,7 +53,8 @@ class Trainer:
                 epoch_val_loss.append(val_loss)
                 # Calculate fid score for first 5 minibatches
                 if minibatch_idx < 5:
-                    fid_score= self.validate(x)
+                    # fid_score= self.validate(x)
+                    fid_score = 0
                     epoch_fid.append(fid_score)
             fid = np.mean(epoch_fid)
             print(f'Epoch: {epoch+1} | Validation Loss: {np.mean(val_loss)} | Approx. FID Score: {fid}')

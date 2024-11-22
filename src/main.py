@@ -19,7 +19,7 @@ from model import Model
 def main():
     # Initialize data module & get data loaders
     data_module = DiffusionDataModule()
-    train_loader = data_module.get_MNIST_dataloader(
+    train_loader = data_module.get_CIFAR10_dataloader(
         train=True,
         batch_size=128,
         shuffle=True,
@@ -28,7 +28,7 @@ def main():
             transforms.Normalize((0.5,), (0.5,))
         ])
     )
-    val_loader = data_module.get_MNIST_dataloader(
+    val_loader = data_module.get_CIFAR10_dataloader(
         train=False,
         batch_size=128,
         shuffle=True,
@@ -40,9 +40,8 @@ def main():
     
 
     # Initialize diffusion model
-    T =1000
-    model = Model(ch=64, out_ch=1, ch_down_mult=(2, 4), num_res_blocks=2, attn_resolutions=[], dropout=0.1, resamp_with_conv=True)
-    diffusion_model = DiffusionModel(model, T=T)
+    model = Model(ch=64, out_ch=3, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
+    diffusion_model = DiffusionModel(model, T=1000, img_shape=(3, 32, 32))
 
     # Inititalize trainer object
     trainer = Trainer(
@@ -50,11 +49,11 @@ def main():
         train_loader=train_loader,
         val_loader=val_loader,
         optimizer=torch.optim.Adam(diffusion_model.model.parameters(), lr=1e-4),
-        num_epochs=30
+        num_epochs=25
     )
 
     # Train the model
-    logger = trainer.train(n_scores=10)
+    logger = trainer.train()
 
     # Plot the plots & save the model & logs
     logger.plot()
