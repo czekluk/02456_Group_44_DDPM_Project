@@ -69,6 +69,8 @@ class Visualizer:
         ax.grid(True)
 
         # save plot
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
         plt.savefig(os.path.join(save_path, fig_name))
         plt.close()
 
@@ -94,6 +96,8 @@ class Visualizer:
         ax.grid(True)
 
         # save plot
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
         plt.savefig(os.path.join(save_path, fig_name))
         plt.close()
 
