@@ -18,7 +18,7 @@ def get_timestep_embedding(timesteps: torch.Tensor, dimension: int = 256) -> tor
     i = torch.arange(half_dim, dtype=torch.float32) # shape: [half_dim]
     exponent = math.log(10000) / (half_dim - 1) # subtract 1 to account for 0-indexing
     frequencies = torch.exp(i * -exponent)
-    
+    frequencies = frequencies.to(timesteps.device)
     # Reshape to allow for element-wise multiplication
     timesteps = timesteps.view(-1, 1) # shape: [batch_size, 1]
     frequencies = frequencies.view(1, -1) # shape: [1, half_dim]

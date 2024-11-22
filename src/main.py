@@ -34,8 +34,9 @@ def main():
     
 
     # Initialize diffusion model
-    model = Model(ch=64, out_ch=1, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
-    diffusion_model = DiffusionModel(model, T=1000)
+    T =1000
+    model = Model(ch=64, out_ch=1, ch_down_mult=(2, 4), num_res_blocks=2, attn_resolutions=[64, 128], dropout=0.1, resamp_with_conv=True)
+    diffusion_model = DiffusionModel(model, T=T)
 
     # Inititalize trainer object
     trainer = Trainer(
@@ -43,7 +44,7 @@ def main():
         train_loader=train_loader,
         val_loader=val_loader,
         optimizer=torch.optim.Adam(diffusion_model.model.parameters(), lr=1e-4),
-        num_epochs=5
+        num_epochs=30
     )
 
     # Train the model
@@ -59,9 +60,9 @@ def main():
     # Plot the samples
     visualizer = Visualizer()
     x, _ = next(iter(val_loader))
-    visualizer.plot_forward_process(diffusion_model, x, [0, 250, 500, 750, 1000])
+    visualizer.plot_forward_process(diffusion_model, x, [0, T//4, T//2, T*3//4, T])
     samples = diffusion_model.all_step_sample(n_samples=16)
-    visualizer.plot_reverse_process(samples, [0, 250, 500, 750, 1000])
+    visualizer.plot_reverse_process(samples, [0, T//4, T//2, T*3//4, T])
 
     # Sample from the model
     samples = diffusion_model.sample(n_samples=16)

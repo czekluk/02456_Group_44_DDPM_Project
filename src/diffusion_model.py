@@ -58,7 +58,7 @@ class DiffusionModel:
         self.model.train()
 
         # sample t from uniform distribution
-        t = torch.randint(1, self.T+1, (x.shape[0], 1), device=self.device)
+        t = torch.randint(1, self.T, (x.shape[0], 1), device=self.device)
 
         # sample e from N(0,I)
         e = self.normal.rsample(sample_shape=x.shape).to(self.device)
@@ -108,7 +108,7 @@ class DiffusionModel:
         self.model.eval()
         with torch.no_grad():
             # sample t from uniform distribution
-            t = torch.randint(1, self.T+1, (x.shape[0], 1), device=self.device)
+            t = torch.randint(1, self.T, (x.shape[0], 1), device=self.device)
 
             # sample e from N(0,I)
             e = self.normal.rsample(sample_shape=x.shape).to(self.device)
