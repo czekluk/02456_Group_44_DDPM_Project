@@ -49,7 +49,8 @@ def main():
         train_loader=train_loader,
         val_loader=val_loader,
         optimizer=torch.optim.Adam(diffusion_model.model.parameters(), lr=1e-4),
-        num_epochs=25
+        num_epochs=1,
+        normalized=True
     )
 
     # Train the model

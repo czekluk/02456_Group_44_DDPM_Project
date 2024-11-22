@@ -19,13 +19,15 @@ class Trainer:
                  train_loader: torch.utils.data.DataLoader, 
                  val_loader: torch.utils.data.DataLoader, 
                  optimizer: torch.optim.Optimizer,
-                 num_epochs: int = 100):
+                 num_epochs: int = 100,
+                 normalized: bool = True):
         self.diffusion_model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.optimizer = optimizer
         self.num_epochs = num_epochs
         self.logger = Logger()
+        self.normalized = normalized
 
     def train(self):
         '''
@@ -79,7 +81,7 @@ class Trainer:
         '''
         # fid = FIDScore()
         # iSc = InceptionScore()
-        fid = tfFIDScore()
+        fid = tfFIDScore(normalized=self.normalized)
 
         self.diffusion_model.model.eval() # should possibly be inside the sample method
         with torch.no_grad():
