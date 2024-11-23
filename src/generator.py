@@ -86,7 +86,10 @@ if __name__ == "__main__":
         train=False,
         batch_size=16,
         shuffle=True,
-        transform=transforms.Compose([transforms.ToTensor()])
+        transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,), (0.5,))    
+        ])
     )
     x, _ = next(iter(val_loader))
     recon_x = gen.reconstruct(x, plot=True)
