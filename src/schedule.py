@@ -92,18 +92,53 @@ class CosineSchedule:
         self.schedule = torch.tensor([self.beta(t) for t in range(T+1)]).to(self.device)
 
     def _get_f_for_t(self, t: int):
+        '''
+        Get f(t) for iteration t as described in 'Improved Denoising Diffusion Probabilistic Models'
+        '''
         return np.cos(((t / self.T + self.s) / (1 + self.s)) * (np.pi / 2)) ** 2
 
     def alpha(self, t: int):
+        '''
+        Get alpha at iteration t
+        
+        Inputs:
+        -t: Iteration number
+        '''
         return self._get_f_for_t(t) / self.f_0
     
     def beta(self, t: int):
+        '''
+        Get beta at iteration t
+        
+        Inputs: 
+        - t: Iteration number
+        '''
         if t == 0: # No alpha for t-1
             return 0
         beta = 1 - (self.alpha(t) / self.alpha(t - 1))
         if beta >= 0.999: # Clamp beta to 0.999
             beta = 0.999
         return beta
+    
+    def alpha_dash(self, t: int):
+        '''
+        Get alpha dash at iteration t
+        Product of alphas up to timestep t
+        
+        Inputs:
+        -t: Iteration number
+        '''
+        alpha_dash = self.alpha(0)
+        for i in range(1,t):
+            alpha_dash *= self.alpha(i)
+        return alpha_dash
+    
+    def alpha_dash_list(self, ts: torch.tensor):
+        # Compute alphas as a list comprehension, with each alpha_dash(t) being a scalar value
+        alphas = [self.alpha_dash(t) for t in ts]
+
+        # Convert to a tensor and reshape to (batch_size, 1)
+        return torch.tensor(alphas).view(-1, 1)
     
     def plot_schedule(self):
         '''
