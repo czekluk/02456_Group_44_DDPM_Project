@@ -1,0 +1,1 @@
+MNIST_2_downsampling_2resnet_with_attention_in_every_layer_64ch_128ch_256ch_30_epochs_lin_schedule
