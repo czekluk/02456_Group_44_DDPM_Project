@@ -13,7 +13,7 @@ from objective import NoiseObjective
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 class DiffusionModel:
-    def __init__(self, model: torch.nn.Module, T: int = 1000, b0: float = 10e-4, bT: float = 0.02, img_shape: tuple = (1, 28, 28), classifier: torch.nn.Module = None, lambda_guidance: float = 0.1):
+    def __init__(self, model: torch.nn.Module, T: int = 1000, schedule = LinearSchedule(10e-4, 0.02, 1000), img_shape: tuple = (1, 28, 28), classifier: torch.nn.Module = None, lambda_guidance: float = 0.1):
         '''
         Diffusion model class implemnting the diffusion model as described in the "Denoising Diffusion Probabilistic Models" paper.
         Source: https://arxiv.org/pdf/2006.11239
@@ -29,7 +29,7 @@ class DiffusionModel:
         self.T = T
         self.uniform = torch.distributions.uniform.Uniform(1, T)
         self.normal = torch.distributions.normal.Normal(0, 1)
-        self.schedule = LinearSchedule(b0, bT, T)
+        self.schedule = schedule
         self.img_shape = img_shape
 
         # Training related parameters
@@ -41,7 +41,8 @@ class DiffusionModel:
 
         # Classifier guidance related parameters
         self.classifier = classifier
-        self.classifier.to(self.device)
+        if self.classifier is not None:
+            self.classifier.to(self.device)
         self.lambda_guidance = lambda_guidance
 
     def train(self, x: torch.Tensor, optimizer: torch.optim.Optimizer, verbose: bool = False):

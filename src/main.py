@@ -15,6 +15,7 @@ from trainer import Trainer
 from logger import Logger
 from visualizer import Visualizer
 from model import Model
+from schedule import LinearSchedule, CosineSchedule
 
 def main():
 
@@ -68,7 +69,8 @@ def main():
     T = 1000
     if DATA_FLAG == "cifar10":
         model = Model(ch=64, out_ch=3, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
-        diffusion_model = DiffusionModel(model, T=T, img_shape=(3, 32, 32))
+        schedule = LinearSchedule(10e-4, 0.02, T)
+        diffusion_model = DiffusionModel(model, T=T, schedule=schedule, img_shape=(3, 32, 32))
         # Inititalize trainer object
         trainer = Trainer(
             model=diffusion_model,
@@ -81,7 +83,8 @@ def main():
         )
     elif DATA_FLAG == "mnist":
         model = Model(ch=64, out_ch=1, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
-        diffusion_model = DiffusionModel(model, T=T, img_shape=(1, 28, 28))
+        schedule = LinearSchedule(10e-4, 0.02, T)
+        diffusion_model = DiffusionModel(model, T=T, schedule=schedule, img_shape=(1, 28, 28))
         # Inititalize trainer object
         trainer = Trainer(
             model=diffusion_model,

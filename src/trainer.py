@@ -29,7 +29,7 @@ class Trainer:
         self.num_epochs = num_epochs
         self.logger = Logger()
         self.normalized = normalized
-        self.validate = validate
+        self.validate_flag = validate
 
     def train(self):
         '''
@@ -57,7 +57,7 @@ class Trainer:
                 epoch_val_loss.append(val_loss)
                 # Calculate fid score for first 5 minibatches
                 if minibatch_idx < 5:
-                    if self.validate:
+                    if self.validate_flag:
                         fid_score= self.validate(x)
                     else:
                         fid_score = -1

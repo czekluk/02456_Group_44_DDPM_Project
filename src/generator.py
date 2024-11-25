@@ -7,6 +7,7 @@ from model import Model
 from diffusion_model import DiffusionModel
 from visualizer import Visualizer
 from dataset import DiffusionDataModule
+from schedule import LinearSchedule, CosineSchedule
 
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -77,13 +78,15 @@ class Generator:
 if __name__ == "__main__":
     DATA_FLAG = "mnist" # change to "mnist" or "cifar10"
 
+    T = 1000
+    schedule = LinearSchedule(10e-4, 0.02, T)
     if DATA_FLAG == "mnist":
         model = Model(ch=64, out_ch=1, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
-        gen = Generator(DiffusionModel(model, T=1000),
+        gen = Generator(DiffusionModel(model, T=T, schedule=schedule),
                         os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-16_21-08-13-Epoch_0004-FID_5.76-DiffusionModel.pth'))
     elif DATA_FLAG == "cifar10":
         model = Model(ch=64, out_ch=3, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
-        gen = Generator(DiffusionModel(model, T=1000, img_shape=(3, 32, 32)),
+        gen = Generator(DiffusionModel(model, T=T, schedule=schedule, img_shape=(3, 32, 32)),
                         os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-22_19-58-52-Epoch_0050-ValLoss_23.23-LastDiffusionModel.pth'))
     else:
         raise NotImplementedError
