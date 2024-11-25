@@ -20,7 +20,8 @@ class Trainer:
                  val_loader: torch.utils.data.DataLoader, 
                  optimizer: torch.optim.Optimizer,
                  num_epochs: int = 100,
-                 normalized: bool = True):
+                 normalized: bool = True,
+                 validate: bool = True):
         self.diffusion_model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -28,6 +29,7 @@ class Trainer:
         self.num_epochs = num_epochs
         self.logger = Logger()
         self.normalized = normalized
+        self.validate = validate
 
     def train(self):
         '''
@@ -55,8 +57,10 @@ class Trainer:
                 epoch_val_loss.append(val_loss)
                 # Calculate fid score for first 5 minibatches
                 if minibatch_idx < 5:
-                    # fid_score= self.validate(x)
-                    fid_score = 0
+                    if self.validate:
+                        fid_score= self.validate(x)
+                    else:
+                        fid_score = -1
                     epoch_fid.append(fid_score)
             fid = np.mean(epoch_fid)
             print(f'Epoch: {epoch+1} | Validation Loss: {np.mean(val_loss)} | Approx. FID Score: {fid}')
