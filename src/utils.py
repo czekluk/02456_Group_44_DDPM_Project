@@ -23,7 +23,7 @@ def get_timestep_embedding(timesteps: torch.Tensor, dimension: int = 256) -> tor
     frequencies = frequencies.to(timesteps.device)
     # Reshape to allow for element-wise multiplication
     timesteps = timesteps.view(-1, 1).cpu() # shape: [batch_size, 1]
-    frequencies = frequencies.view(1, -1) # shape: [1, half_dim]
+    frequencies = frequencies.view(1, -1).cpu() # shape: [1, half_dim]
     angles = timesteps * frequencies # shape: [batch_size, half_dim]
     
     # Apply sin to even indices and cos to odd indices

@@ -41,7 +41,8 @@ def main():
 
     # Initialize diffusion model
     model = Model(ch=64, out_ch=3, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
-    diffusion_model = DiffusionModel(model, T=1000, img_shape=(3, 32, 32))
+    T = 1000
+    diffusion_model = DiffusionModel(model, T=T, img_shape=(3, 32, 32))
 
     # Inititalize trainer object
     trainer = Trainer(
