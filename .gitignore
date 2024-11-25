@@ -116,6 +116,9 @@ main_notebook.ipynb
 *.ipynb
 *.out
 *.err
+*.json
+!results/shared_logs/*.json
+*.sh
 
 
 /data
