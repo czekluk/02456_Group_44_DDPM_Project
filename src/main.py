@@ -17,32 +17,65 @@ from visualizer import Visualizer
 from model import Model
 
 def main():
+
+    DATA_FLAG = "mnist" # change to "mnist" or "cifar10"
+
     # Initialize data module & get data loaders
     data_module = DiffusionDataModule()
-    train_loader = data_module.get_CIFAR10_dataloader(
-        train=True,
-        batch_size=128,
-        shuffle=True,
-        transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5,), (0.5,))
-        ])
-    )
-    val_loader = data_module.get_CIFAR10_dataloader(
-        train=False,
-        batch_size=128,
-        shuffle=True,
-        transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5,), (0.5,))
-        ])
-    )
+
+    if DATA_FLAG == "cifar10":
+        train_loader = data_module.get_CIFAR10_dataloader(
+            train=True,
+            batch_size=128,
+            shuffle=True,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,), (0.5,))
+            ])
+        )
+        val_loader = data_module.get_CIFAR10_dataloader(
+            train=False,
+            batch_size=128,
+            shuffle=True,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,), (0.5,))
+            ])
+        )
+    elif DATA_FLAG == "mnist":
+        train_loader = data_module.get_MNIST_dataloader(
+            train=True,
+            batch_size=128,
+            shuffle=True,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,), (0.5,))
+            ])
+        )
+        val_loader = data_module.get_MNIST_dataloader(
+            train=False,
+            batch_size=128,
+            shuffle=True,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,), (0.5,))
+            ])
+        )
+    else:
+        raise NotImplementedError
+
     
 
     # Initialize diffusion model
-    model = Model(ch=64, out_ch=3, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
     T = 1000
-    diffusion_model = DiffusionModel(model, T=T, img_shape=(3, 32, 32))
+    if DATA_FLAG == "cifar10":
+        model = Model(ch=64, out_ch=3, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
+        diffusion_model = DiffusionModel(model, T=T, img_shape=(3, 32, 32))
+    elif DATA_FLAG == "mnist":
+        model = Model(ch=64, out_ch=1, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
+        diffusion_model = DiffusionModel(model, T=T, img_shape=(1, 28, 28))
+    else:
+        raise NotImplementedError
 
     # Inititalize trainer object
     trainer = Trainer(

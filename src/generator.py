@@ -75,27 +75,45 @@ class Generator:
         return recon_x
 
 if __name__ == "__main__":
-    # model = Model(ch=64, out_ch=1, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
-    # gen = Generator(DiffusionModel(model, T=1000),
-    #                 os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-16_21-08-13-Epoch_0004-FID_5.76-DiffusionModel.pth'))
-    
-    model = Model(ch=64, out_ch=3, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
-    gen = Generator(DiffusionModel(model, T=1000, img_shape=(3, 32, 32)),
-                    os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-22_19-58-52-Epoch_0050-ValLoss_23.23-LastDiffusionModel.pth'))
+    DATA_FLAG = "mnist" # change to "mnist" or "cifar10"
 
+    if DATA_FLAG == "mnist":
+        model = Model(ch=64, out_ch=1, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
+        gen = Generator(DiffusionModel(model, T=1000),
+                        os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-16_21-08-13-Epoch_0004-FID_5.76-DiffusionModel.pth'))
+    elif DATA_FLAG == "cifar10":
+        model = Model(ch=64, out_ch=3, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
+        gen = Generator(DiffusionModel(model, T=1000, img_shape=(3, 32, 32)),
+                        os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-22_19-58-52-Epoch_0050-ValLoss_23.23-LastDiffusionModel.pth'))
+    else:
+        raise NotImplementedError
+    
     samples = gen.generate(num_samples=16, plot=True)
     all_samples = gen.generate_all_steps(num_samples=1, plot=True)
 
     data_module = DiffusionDataModule()
-    # val_loader = data_module.get_MNIST_dataloader(
-    val_loader = data_module.get_CIFAR10_dataloader(
-        train=False,
-        batch_size=16,
-        shuffle=True,
-        transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5,), (0.5,))    
-        ])
-    )
+    if DATA_FLAG == "mnist":
+        val_loader = data_module.get_MNIST_dataloader(
+            train=False,
+            batch_size=16,
+            shuffle=True,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,), (0.5,))    
+            ])
+        )
+    elif DATA_FLAG == "cifar10":
+        val_loader = data_module.get_CIFAR10_dataloader(
+            train=False,
+            batch_size=16,
+            shuffle=True,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,), (0.5,))    
+            ])
+        )
+    else:
+        raise NotImplementedError
+
     x, _ = next(iter(val_loader))
     recon_x = gen.reconstruct(x, plot=True)
