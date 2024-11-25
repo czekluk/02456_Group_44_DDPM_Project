@@ -3,7 +3,7 @@ import torch
 from torchvision import datasets, transforms
 import numpy as np
 
-from model import Model
+from model import SimpleModel
 from diffusion_model import DiffusionModel
 from visualizer import Visualizer
 from dataset import DiffusionDataModule
@@ -80,16 +80,9 @@ if __name__ == "__main__":
 
     T = 1000
     schedule = LinearSchedule(10e-4, 0.02, T)
-    if DATA_FLAG == "mnist":
-        model = Model(ch=64, out_ch=1, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
-        gen = Generator(DiffusionModel(model, T=T, schedule=schedule),
-                        os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-16_21-08-13-Epoch_0004-FID_5.76-DiffusionModel.pth'))
-    elif DATA_FLAG == "cifar10":
-        model = Model(ch=64, out_ch=3, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
-        gen = Generator(DiffusionModel(model, T=T, schedule=schedule, img_shape=(3, 32, 32)),
-                        os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-22_19-58-52-Epoch_0050-ValLoss_23.23-LastDiffusionModel.pth'))
-    else:
-        raise NotImplementedError
+    model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
+    gen = Generator(DiffusionModel(model, T=1000),
+                    os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-16_21-08-13-Epoch_0004-FID_5.76-DiffusionModel.pth'))
     
     samples = gen.generate(num_samples=16, plot=True)
     all_samples = gen.generate_all_steps(num_samples=1, plot=True)

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 from datetime import datetime
 
-from schedule import LinearSchedule
+from schedule import LinearSchedule, CosineSchedule
 from objective import NoiseObjective
 
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -152,12 +152,12 @@ class DiffusionModel:
         - x_t: Image with added noise at step t
         '''
         # calculate mean of forward sampling process
-        mean = torch.sqrt(self.schedule.alpha_dash(t)) * x
+        mean = torch.sqrt(torch.tensor([self.schedule.alpha_dash(t)])) * x
 
         # calculate std of forward sampling process
         identity = torch.ones(x.shape[2], x.shape[3])
         identity = identity.unsqueeze(0).unsqueeze(0).expand(x.shape[0], x.shape[1], x.shape[2], x.shape[3])
-        std = (1-self.schedule.alpha_dash(t)) * identity
+        std = (1-torch.Tensor([self.schedule.alpha_dash(t)])) * identity
 
         # sample noise from N(mean, std)
         normal = torch.distributions.normal.Normal(mean, std)
@@ -180,9 +180,9 @@ class DiffusionModel:
         noise_pred = self.model(x, t_tensor)
 
         # Retrieve alpha_t and beta_t from the schedule
-        alpha_dash_t = self.schedule.alpha_dash(t).cpu().detach()
-        alpha_t = self.schedule.alpha(t).cpu().detach()
-        beta_t = self.schedule.beta(t).cpu().detach()  # Variance for timestep t
+        alpha_dash_t = torch.tensor(self.schedule.alpha_dash(t)).cpu().detach()
+        alpha_t = torch.tensor(self.schedule.alpha(t)).cpu().detach()
+        beta_t = torch.tensor(self.schedule.beta(t)).cpu().detach()  # Variance for timestep t
 
         noise_pred = noise_pred.cpu().detach()
         x = x.cpu().detach()
