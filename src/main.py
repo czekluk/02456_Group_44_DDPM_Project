@@ -14,8 +14,12 @@ from dataset import DiffusionDataModule
 from trainer import Trainer
 from logger import Logger
 from visualizer import Visualizer
+<<<<<<< Updated upstream
 from model import Model
 from schedule import LinearSchedule, CosineSchedule
+=======
+from model import SimpleModel
+>>>>>>> Stashed changes
 
 def main():
 
@@ -66,6 +70,7 @@ def main():
         raise NotImplementedError
 
     # Initialize diffusion model
+<<<<<<< Updated upstream
     T = 1000
     if DATA_FLAG == "cifar10":
         model = Model(ch=64, out_ch=3, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
@@ -96,6 +101,20 @@ def main():
         )
     else:
         raise NotImplementedError
+=======
+    T =1000
+    model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
+    diffusion_model = DiffusionModel(model, T=T)
+
+    # Inititalize trainer object
+    trainer = Trainer(
+        model=diffusion_model,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        optimizer=torch.optim.Adam(diffusion_model.model.parameters(), lr=1e-4),
+        num_epochs=1
+    )
+>>>>>>> Stashed changes
 
     # Train the model
     logger = trainer.train()
