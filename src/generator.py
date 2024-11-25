@@ -81,7 +81,7 @@ if __name__ == "__main__":
     
     model = Model(ch=64, out_ch=3, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
     gen = Generator(DiffusionModel(model, T=1000, img_shape=(3, 32, 32)),
-                    os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-22_03-01-28-Epoch_0022-ValLoss_21.66-DiffusionModel.pth'))
+                    os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-22_19-58-52-Epoch_0050-ValLoss_23.23-LastDiffusionModel.pth'))
 
     samples = gen.generate(num_samples=16, plot=True)
     all_samples = gen.generate_all_steps(num_samples=1, plot=True)

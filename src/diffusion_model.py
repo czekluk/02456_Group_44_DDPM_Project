@@ -265,6 +265,8 @@ class DiffusionModel:
         - path: Path where to save the model
         - model_name: Name of the model file
         '''
+        if not os.path.exists(path):
+            os.makedirs(path)
         torch.save(self.model.state_dict(), os.path.join(path, model_name))
         print(f'Model saved to {os.path.join(path, model_name)}')
 
@@ -275,6 +277,8 @@ class DiffusionModel:
         Inputs:
         - path: Path to the model file
         '''
+        if not os.path.exists(path):
+            os.makedirs(path)
         self.model.load_state_dict(torch.load(path, weights_only=True))
         print(f'Model loaded from {path}')
 
