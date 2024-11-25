@@ -123,6 +123,8 @@ class Visualizer:
         fig, ax = plt.subplots(figsize=(10,6))
         if denormalize:
             image = self.denormalize(image)
+
+        image = np.clip(image, 0, 1)
         image = np.transpose(image[0],(1,2,0))
         ax.imshow(image, cmap=cmap)
         ax.set_title(title)
@@ -153,6 +155,9 @@ class Visualizer:
             reconstructed_image = self.denormalize(reconstructed_image)
         original_image = np.transpose(original_image[0],(1,2,0))
         reconstructed_image = np.transpose(reconstructed_image[0],(1,2,0))
+
+        reconstructed_image = np.clip(reconstructed_image, 0, 1)
+
         # create plot
         fig, ax = plt.subplots(1, 2, figsize=(10,6))
         ax[0].imshow(original_image, cmap=cmap)
@@ -189,6 +194,8 @@ class Visualizer:
 
         if denormalize:
             images = self.denormalize(images)
+
+        images = np.clip(images, 0, 1)
 
         # create plot
         fig, ax = plt.subplots(num_rows, 4, figsize=(10,10))
@@ -236,6 +243,9 @@ class Visualizer:
         if denormalize:
             original_images = self.denormalize(original_images)
             reconstructed_images = self.denormalize(reconstructed_images)
+
+        original_images = np.clip(original_images, 0, 1)
+        reconstructed_images = np.clip(reconstructed_images, 0, 1)
 
         num_rows = int(np.ceil(original_images.shape[0] / 4))
         # create plot
@@ -291,6 +301,7 @@ class Visualizer:
             x_t = x_t.permute(0, 2, 3, 1).detach().cpu().numpy()
             if denormalize:
                 x_t = self.denormalize(x_t)
+            x_t = np.clip(x_t, 0, 1)
             ax[idx].imshow(x_t[0], cmap=cmap)
             ax[idx].axis('off')
             ax[idx].set_title(f't={t[idx]}')
@@ -321,6 +332,7 @@ class Visualizer:
             sample = np.transpose(samples[t[idx]][0],(1,2,0))
             if denormalize:
                 sample = self.denormalize(sample)
+            sample = np.clip(sample, 0, 1)
             ax[idx].imshow(sample, cmap=cmap)
             ax[idx].axis('off')
             ax[idx].set_title(f't={t[idx]}')
