@@ -2,6 +2,7 @@ import os
 import json
 
 from datetime import datetime
+from torchvision import transforms
 
 from dataset import DiffusionDataModule
 from generator import Generator
@@ -19,14 +20,20 @@ def post_mnist():
     train_loader = DiffusionDataModule().get_MNIST_dataloader(
         train=True,
         batch_size=60000,
-        shuffle=True
+        shuffle=True,
+        transform=transforms.Compose([transforms.ToTensor(), 
+                                      transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+                                      ])
     )
     train_samples = next(iter(train_loader))
 
     test_loader = DiffusionDataModule().get_MNIST_dataloader(
         train=False,
         batch_size=10000,
-        shuffle=True
+        shuffle=True,
+        transform=transforms.Compose([transforms.ToTensor(), 
+                                      transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+                                      ])
     )
     test_samples = next(iter(test_loader))
 
@@ -57,14 +64,20 @@ def post_cifar10():
     train_loader = DiffusionDataModule().get_CIFAR10_dataloader(
         train=True,
         batch_size=50000,
-        shuffle=True
+        shuffle=True,
+        transform=transforms.Compose([transforms.ToTensor(), 
+                                      transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+                                      ])
     )
     train_samples = next(iter(train_loader))
 
     test_loader = DiffusionDataModule().get_CIFAR10_dataloader(
         train=False,
         batch_size=10000,
-        shuffle=True
+        shuffle=True,
+        transform=transforms.Compose([transforms.ToTensor(), 
+                                      transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+                                      ])
     )
     test_samples = next(iter(test_loader))
 

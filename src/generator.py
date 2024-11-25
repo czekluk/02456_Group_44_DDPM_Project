@@ -1,11 +1,13 @@
 import os
 import torch
 from torchvision import datasets, transforms
+import numpy as np
 
 from model import Model
 from diffusion_model import DiffusionModel
 from visualizer import Visualizer
 from dataset import DiffusionDataModule
+from schedule import LinearSchedule, CosineSchedule
 
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -31,7 +33,7 @@ class Generator:
             if num_samples >= 2:
                 self.visualizer.plot_multiple_images(samples)
             else:
-                self.visualizer.plot_single_image(samples[0].squeeze())
+                self.visualizer.plot_single_image(samples)
 
         return samples
     
@@ -69,27 +71,52 @@ class Generator:
             if x.shape[0] >= 2:
                 self.visualizer.plot_reconstructed_images(x, recon_x)
             else:
-                self.visualizer.plot_reconstructed_image(x.squeeze(), recon_x.squeeze())
+                self.visualizer.plot_reconstructed_image(x, recon_x)
 
         return recon_x
 
 if __name__ == "__main__":
-    model = Model(ch=64, out_ch=1, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
-    gen = Generator(DiffusionModel(model, T=1000),
-                    os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-16_21-08-13-Epoch_0004-FID_5.76-DiffusionModel.pth'))
+    DATA_FLAG = "mnist" # change to "mnist" or "cifar10"
+
+    T = 1000
+    schedule = LinearSchedule(10e-4, 0.02, T)
+    if DATA_FLAG == "mnist":
+        model = Model(ch=64, out_ch=1, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
+        gen = Generator(DiffusionModel(model, T=T, schedule=schedule),
+                        os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-16_21-08-13-Epoch_0004-FID_5.76-DiffusionModel.pth'))
+    elif DATA_FLAG == "cifar10":
+        model = Model(ch=64, out_ch=3, ch_down_mult=(1, 2), num_res_blocks=2, attn_resolutions=[7], dropout=0.1, resamp_with_conv=True)
+        gen = Generator(DiffusionModel(model, T=T, schedule=schedule, img_shape=(3, 32, 32)),
+                        os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-22_19-58-52-Epoch_0050-ValLoss_23.23-LastDiffusionModel.pth'))
+    else:
+        raise NotImplementedError
     
     samples = gen.generate(num_samples=16, plot=True)
     all_samples = gen.generate_all_steps(num_samples=1, plot=True)
 
     data_module = DiffusionDataModule()
-    val_loader = data_module.get_MNIST_dataloader(
-        train=False,
-        batch_size=16,
-        shuffle=True,
-        transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5,), (0.5,))    
-        ])
-    )
+    if DATA_FLAG == "mnist":
+        val_loader = data_module.get_MNIST_dataloader(
+            train=False,
+            batch_size=16,
+            shuffle=True,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,), (0.5,))    
+            ])
+        )
+    elif DATA_FLAG == "cifar10":
+        val_loader = data_module.get_CIFAR10_dataloader(
+            train=False,
+            batch_size=16,
+            shuffle=True,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,), (0.5,))    
+            ])
+        )
+    else:
+        raise NotImplementedError
+
     x, _ = next(iter(val_loader))
     recon_x = gen.reconstruct(x, plot=True)

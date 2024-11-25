@@ -19,15 +19,19 @@ class Trainer:
                  train_loader: torch.utils.data.DataLoader, 
                  val_loader: torch.utils.data.DataLoader, 
                  optimizer: torch.optim.Optimizer,
-                 num_epochs: int = 100):
+                 num_epochs: int = 100,
+                 normalized: bool = True,
+                 validate: bool = True):
         self.diffusion_model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.optimizer = optimizer
         self.num_epochs = num_epochs
         self.logger = Logger()
+        self.normalized = normalized
+        self.validate_flag = validate
 
-    def train(self, save_on_epoch: bool = False, plotting: bool = False, n_scores: int = 5):
+    def train(self):
         '''
         Method to train the diffusion model.
 
@@ -42,7 +46,7 @@ class Trainer:
                 x = x.to(self.diffusion_model.device)
                 loss = self.diffusion_model.train(x, self.optimizer)
                 epoch_loss.append(loss)
-            print(f'Epoch: {epoch} | Train Loss: {np.mean(epoch_loss)}')
+            print(f'Epoch: {epoch+1} | Train Loss: {np.mean(epoch_loss)}')
 
             # Validation loop
             epoch_fid = []
@@ -53,7 +57,10 @@ class Trainer:
                 epoch_val_loss.append(val_loss)
                 # Calculate fid score for first 5 minibatches
                 if minibatch_idx < 5:
-                    fid_score= self.validate(x)
+                    if self.validate_flag:
+                        fid_score= self.validate(x)
+                    else:
+                        fid_score = -1
                     epoch_fid.append(fid_score)
             fid = np.mean(epoch_fid)
             print(f'Epoch: {epoch+1} | Validation Loss: {np.mean(val_loss)} | Approx. FID Score: {fid}')
@@ -78,7 +85,7 @@ class Trainer:
         '''
         # fid = FIDScore()
         # iSc = InceptionScore()
-        fid = tfFIDScore()
+        fid = tfFIDScore(normalized=self.normalized)
 
         self.diffusion_model.model.eval() # should possibly be inside the sample method
         with torch.no_grad():

@@ -45,7 +45,7 @@ class ScoreInceptionV3(torch.nn.Module):
         return self.model(x)
 
 class FIDScore:
-    def __init__(self):
+    def __init__(self, normalized: bool = True):
         '''
         Class implementing the Fréchet Inception Distance (FID) score.
         https://arxiv.org/pdf/1706.08500
@@ -63,6 +63,8 @@ class FIDScore:
             transforms.Resize((299, 299)),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
+
+        self.normalized = normalized
 
     def calculate_fid(self, real_img: torch.Tensor, gen_img: torch.Tensor):
         '''
@@ -95,6 +97,10 @@ class FIDScore:
                 raise ValueError('Input tensor must have 3 channels')
 
         with torch.no_grad():
+            if self.normalized:
+                real_img = (real_img + 1) / 2
+                gen_img = (gen_img + 1) / 2
+
             # resize & normalize images
             real = torch.zeros((real_img.shape[0], 3, 299, 299))
             gen = torch.zeros((gen_img.shape[0], 3, 299, 299))
@@ -127,13 +133,14 @@ class FIDScore:
 
 
 class tfFIDScore:
-    def __init__(self, mode: str = 'mnist'):
+    def __init__(self, mode: str = 'mnist', normalized: bool = True):
         if mode == 'mnist':
             self.classifier = tfhub.load("https://tfhub.dev/tensorflow/tfgan/eval/mnist/logits/1")
         elif mode == 'cifar10':
             raise NotImplementedError('CIFAR-10 not implemented yet')
         else:
             raise ValueError('Invalid mode. Choose from: mnist, cifar10')
+        self.normalized = normalized
         
     def calculate_fid(self, real_img: torch.Tensor, gen_img: torch.Tensor):
         '''
@@ -157,6 +164,11 @@ class tfFIDScore:
         # permute tensors
         real_img = real_img.permute(0, 2, 3, 1).cpu().detach().numpy()
         gen_img = gen_img.permute(0, 2, 3, 1).cpu().detach().numpy()
+
+        # denormalize images
+        if self.normalized:
+            real_img = (real_img + 1) / 2
+            gen_img = (gen_img + 1) / 2
 
         # conver to tensorflow tensors
         real_img = tf.convert_to_tensor(real_img)
@@ -187,7 +199,7 @@ class tfFIDScore:
         return tf.concat(tf.unstack(activations), 0)
 
 class InceptionScore:
-    def __init__(self):
+    def __init__(self, normalized: bool = True):
         '''
         Class implementing the Inception Score.
         https://arxiv.org/pdf/1606.03498
@@ -205,6 +217,8 @@ class InceptionScore:
             transforms.Resize((299, 299)),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
+
+        self.normalized = normalized
 
     def calculate_is(self, gen_img: torch.Tensor, eps=1e-6):
         '''
@@ -229,6 +243,9 @@ class InceptionScore:
                 raise ValueError('Input tensor must have 3 channels')
 
         with torch.no_grad():
+            if self.normalized:
+                gen_img = (gen_img + 1) / 2
+
             # resize & normalize images
             gen = torch.zeros((gen_img.shape[0], 3, 299, 299))
             for i in range(gen_img.shape[0]):

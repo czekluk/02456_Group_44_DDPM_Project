@@ -13,6 +13,8 @@ def get_timestep_embedding(timesteps: torch.Tensor, dimension: int = 256) -> tor
     Returns:
         torch.Tensor: Sinusoidal embeddings for the given timesteps. Shape: [batch_size, dimension]
     """
+    device = timesteps.device
+
     # Loop over half of the requested dim
     half_dim = dimension // 2
     i = torch.arange(half_dim, dtype=torch.float32) # shape: [half_dim]
@@ -20,8 +22,8 @@ def get_timestep_embedding(timesteps: torch.Tensor, dimension: int = 256) -> tor
     frequencies = torch.exp(i * -exponent)
     frequencies = frequencies.to(timesteps.device)
     # Reshape to allow for element-wise multiplication
-    timesteps = timesteps.view(-1, 1) # shape: [batch_size, 1]
-    frequencies = frequencies.view(1, -1) # shape: [1, half_dim]
+    timesteps = timesteps.view(-1, 1).cpu() # shape: [batch_size, 1]
+    frequencies = frequencies.view(1, -1).cpu() # shape: [1, half_dim]
     angles = timesteps * frequencies # shape: [batch_size, half_dim]
     
     # Apply sin to even indices and cos to odd indices
@@ -31,7 +33,7 @@ def get_timestep_embedding(timesteps: torch.Tensor, dimension: int = 256) -> tor
     if dimension % 2 == 1:
         emb = torch.cat([emb, torch.zeros_like(emb[:, :1])], dim=-1)
     
-    return emb
+    return emb.to(device)
 
 def test_timestep_embedding():
     """Test the get_timestep_embedding function."""
