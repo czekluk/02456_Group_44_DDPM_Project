@@ -1,11 +1,10 @@
 import torch
-from torchvision import datasets, transforms
+from torchvision import transforms
 import numpy as np
 import os
-import sys
 
 from dataset import DiffusionDataModule
-from model import Model
+from unet import Model
 from diffusion_model import DiffusionModel
 from visualizer import Visualizer
 

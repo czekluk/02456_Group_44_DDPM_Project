@@ -1,12 +1,8 @@
 import torch
 import os
-import sys
 
 import numpy as np
-import matplotlib.pyplot as plt
 from tqdm import tqdm
-
-from datetime import datetime
 
 from diffusion_model import DiffusionModel
 from metrics import FIDScore, InceptionScore, tfFIDScore

@@ -1,7 +1,6 @@
 import os
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Dataset, Subset
-import matplotlib.pyplot as plt
 
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(PROJECT_BASE_DIR, "data")

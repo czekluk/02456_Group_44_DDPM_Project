@@ -3,7 +3,7 @@ import torch
 from torchvision import datasets, transforms
 import numpy as np
 
-from model import SimpleModel
+from unet import SimpleModel
 from diffusion_model import DiffusionModel
 from visualizer import Visualizer
 from dataset import DiffusionDataModule

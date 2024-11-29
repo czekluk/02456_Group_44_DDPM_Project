@@ -1,6 +1,5 @@
 import torch
 import os
-import sys
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,10 +8,8 @@ import tensorflow as tf
 import tensorflow_gan as tfgan
 
 from scipy.linalg import sqrtm
-from datetime import datetime
 from torchvision.models import inception_v3
 from torchvision import transforms
-from dataset import DiffusionDataModule
 
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
