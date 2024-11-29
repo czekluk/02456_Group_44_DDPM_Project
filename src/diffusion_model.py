@@ -187,9 +187,9 @@ class DiffusionModel:
             noise_pred = noise_pred.cpu().detach()
             x = x.cpu().detach()
         else:
-            alpha_dash_t = self.schedule.alpha_dash(t).detach()
-            alpha_t = self.schedule.alpha(t).detach()
-            beta_t = self.schedule.beta(t).detach()  # Variance for timestep t
+            alpha_dash_t = torch.tensor(self.schedule.alpha_dash(t)).detach()
+            alpha_t = torch.tensor(self.schedule.alpha(t)).detach()
+            beta_t = torch.tensor(self.schedule.beta(t)).detach()  # Variance for timestep t
             noise_pred = noise_pred.detach()
             x = x.detach()
 
