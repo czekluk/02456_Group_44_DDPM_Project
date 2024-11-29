@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 from tqdm import tqdm
+import scipy.stats as stats
 
 from diffusion_model import DiffusionModel
 from metrics import FIDScore, InceptionScore, tfFIDScore
@@ -42,6 +43,9 @@ class Trainer:
                 x = x.to(self.diffusion_model.device)
                 loss = self.diffusion_model.train(x, self.optimizer)
                 epoch_loss.append(loss)
+            loss = np.mean(epoch_loss)
+            loss_interval = stats.norm.interval(0.95, loc=np.mean(epoch_loss), scale=np.std(epoch_loss))
+            loss_conf = (float(loss_interval[0]), float(loss_interval[1]))
             print(f'Epoch: {epoch+1} | Train Loss: {np.mean(epoch_loss)}')
 
             # Validation loop
@@ -52,17 +56,24 @@ class Trainer:
                 val_loss = self.diffusion_model.val_loss(x)
                 epoch_val_loss.append(val_loss)
                 # Calculate fid score for first 5 minibatches
-                if minibatch_idx < 5:
+                if minibatch_idx < 10:
                     if self.validate_flag:
                         fid_score= self.validate(x)
                     else:
                         fid_score = -1
                     epoch_fid.append(fid_score)
+            # calculate fid-statistics
             fid = np.mean(epoch_fid)
-            print(f'Epoch: {epoch+1} | Validation Loss: {np.mean(val_loss)} | Approx. FID Score: {fid}')
+            fid_interval = stats.t.interval(0.95, len(epoch_fid)-1, loc=np.mean(epoch_fid), scale=stats.sem(epoch_fid))
+            fid_conf = (float(fid_interval[0]), float(fid_interval[1]))
+            # calculate val_loss-statistics
+            val_loss = np.mean(epoch_val_loss)
+            val_loss_interval = stats.norm.interval(0.95, loc=np.mean(epoch_val_loss), scale=np.std(epoch_val_loss))
+            val_loss_conf = (float(val_loss_interval[0]), float(val_loss_interval[1]))
 
+            print(f'Epoch: {epoch+1} | Validation Loss: {val_loss} | Approx. FID Score: {fid}')
             # Log the training & validation metrics
-            self.logger.log_training(np.mean(epoch_loss), np.mean(val_loss), fid)
+            self.logger.log_training(loss, val_loss, fid, loss_conf, val_loss_conf, fid_conf)
             self.logger.log_model(self.diffusion_model, epoch+1)
 
         # Return the logger of the training process
