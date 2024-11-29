@@ -118,7 +118,6 @@ main_notebook.ipynb
 *.err
 *.json
 !results/shared_logs/*.json
-*.sh
 
 
 /data

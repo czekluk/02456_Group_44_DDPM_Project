@@ -11,7 +11,7 @@ from schedule import LinearSchedule, CosineSchedule
 from objective import NoiseObjective
 
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+CPU_DETACH = False
 class DiffusionModel:
     def __init__(self, model: torch.nn.Module, T: int = 1000, schedule = LinearSchedule(10e-4, 0.02, 1000), img_shape: tuple = (1, 28, 28), classifier: torch.nn.Module = None, lambda_guidance: float = 0.1):
         '''
@@ -180,19 +180,28 @@ class DiffusionModel:
         noise_pred = self.model(x, t_tensor)
 
         # Retrieve alpha_t and beta_t from the schedule
-        alpha_dash_t = torch.tensor(self.schedule.alpha_dash(t)).cpu().detach()
-        alpha_t = torch.tensor(self.schedule.alpha(t)).cpu().detach()
-        beta_t = torch.tensor(self.schedule.beta(t)).cpu().detach()  # Variance for timestep t
-
-        noise_pred = noise_pred.cpu().detach()
-        x = x.cpu().detach()
+        if CPU_DETACH:
+            alpha_dash_t = torch.tensor(self.schedule.alpha_dash(t)).cpu().detach()
+            alpha_t = torch.tensor(self.schedule.alpha(t)).cpu().detach()
+            beta_t = torch.tensor(self.schedule.beta(t)).cpu().detach()  # Variance for timestep t
+            noise_pred = noise_pred.cpu().detach()
+            x = x.cpu().detach()
+        else:
+            alpha_dash_t = self.schedule.alpha_dash(t).detach()
+            alpha_t = self.schedule.alpha(t).detach()
+            beta_t = self.schedule.beta(t).detach()  # Variance for timestep t
+            noise_pred = noise_pred.detach()
+            x = x.detach()
 
         # Compute the mean for x_t_minus_1 using the noise prediction
         mean = (1 / torch.sqrt(alpha_t)) * (x - ((1 - alpha_t)/torch.sqrt(1 - alpha_dash_t)) * noise_pred)
         
         # Sample noise using beta_t as the variance for the current timestep
         if t > 1:
-            noise = torch.randn_like(x).cpu() # Standard Gaussian noise
+            if CPU_DETACH:
+                noise = torch.randn_like(x).cpu() # Standard Gaussian noise
+            else:
+                noise = torch.randn_like(x)
             x_t_minus_1 = mean + torch.sqrt(beta_t) * noise
         else:
             x_t_minus_1 = mean  # No noise at the final step
@@ -269,23 +278,39 @@ class DiffusionModel:
         class_loss = torch.log(class_probs[:, class_label] + 1e-8)  # Avoid log(0)
         class_loss.mean().backward()
         gradient = x.grad.data
-        gradient = gradient.cpu().detach()
+        if CPU_DETACH:
+            gradient = gradient.cpu().detach()
 
-        # gradient = torch.zeros_like(x).cpu().detach()
-        # for idx in range(class_loss.shape[0]):
-        #     class_loss[idx].backward(retain_graph=True)
-        #     gradient[idx] = x.grad.data[idx]
-        #     x.grad.data.zero_()
-        # gradient = gradient.cpu().detach()
+            # gradient = torch.zeros_like(x).cpu().detach()
+            # for idx in range(class_loss.shape[0]):
+            #     class_loss[idx].backward(retain_graph=True)
+            #     gradient[idx] = x.grad.data[idx]
+            #     x.grad.data.zero_()
+            # gradient = gradient.cpu().detach()
 
-        # Retrieve alpha_t and beta_t from the schedule
-        alpha_dash_t = self.schedule.alpha_dash(t).cpu().detach()
-        alpha_t = self.schedule.alpha(t).cpu().detach()
-        beta_t = self.schedule.beta(t).cpu().detach()  # Variance for timestep t
+            # Retrieve alpha_t and beta_t from the schedule
+            alpha_dash_t = self.schedule.alpha_dash(t).cpu().detach()
+            alpha_t = self.schedule.alpha(t).cpu().detach()
+            beta_t = self.schedule.beta(t).cpu().detach()  # Variance for timestep t
 
-        noise_pred = noise_pred.cpu().detach()
-        x = x.cpu().detach()
+            noise_pred = noise_pred.cpu().detach()
+            x = x.cpu().detach()
+        else:
+            gradient = gradient.detach()
 
+            # gradient = torch.zeros_like(x).cpu().detach()
+            # for idx in range(class_loss.shape[0]):
+            #     class_loss[idx].backward(retain_graph=True)
+            #     gradient[idx] = x.grad.data[idx]
+            #     x.grad.data.zero_()
+            # gradient = gradient.cpu().detach()
+
+            # Retrieve alpha_t and beta_t from the schedule
+            alpha_dash_t = self.schedule.alpha_dash(t).detach()
+            alpha_t = self.schedule.alpha(t).detach()
+            beta_t = self.schedule.beta(t).detach()  # Variance for timestep t
+            noise_pred = noise_pred.detach()
+            x = x.detach()
         # apply classifier guidance
         noise_pred = noise_pred - self.lambda_guidance * gradient
 
@@ -294,7 +319,10 @@ class DiffusionModel:
         
         # Sample noise using beta_t as the variance for the current timestep
         if t > 1:
-            noise = torch.randn_like(x).cpu() # Standard Gaussian noise
+            if CPU_DETACH:
+                noise = torch.randn_like(x).cpu()
+            else:
+                noise = torch.randn_like(x)
             x_t_minus_1 = mean + torch.sqrt(beta_t) * noise
         else:
             x_t_minus_1 = mean  # No noise at the final step
