@@ -15,7 +15,7 @@ class Visualizer:
     def __init__(self):
         pass
 
-    def plot_loss(self, loss: List[float], val_loss: List[float],
+    def plot_loss(self, loss: List[float], val_loss: List[float], loss_conf: List[tuple], val_loss_conf: List[tuple], conf: bool = False,
                   save_path: str = os.path.join(PROJECT_BASE_DIR,'results','plots','training'),
                   fig_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Loss-DiffusionModel.png"):
         '''
@@ -24,13 +24,29 @@ class Visualizer:
         Inputs:
         - loss: List of loss values
         - val_loss: List of validation loss values
+        - loss_conf: List of confidence intervals for loss
+        - val_loss_conf: List of confidence intervals for val_loss
         - save_path: Path to save-directory
         - fig_name: Name of the saved file
         '''
+        # extract lower & upper bounds
+        lower, upper = [], []
+        for conf in loss_conf:
+            lower.append(conf[0])
+            upper.append(conf[1])
+        val_lower, val_upper = [], []
+        for conf in val_loss_conf:
+            val_lower.append(conf[0])
+            val_upper.append(conf[1])
+
         # create plot
         fig, ax = plt.subplots(figsize=(10,6))
         ax.plot(loss, color='blue', label='Train Loss')
+        if conf:
+            ax.fill_between(range(len(loss)), lower, upper, color='blue', alpha=0.1)
         ax.plot(val_loss, color='red', label='Validation Loss')
+        if conf:
+            ax.fill_between(range(len(val_loss)), val_lower, val_upper, color='red', alpha=0.1)
         ax.set_xlabel('Iteration')
         ax.set_ylabel('Loss')
         ax.set_title('Loss of DDPM')
@@ -73,7 +89,7 @@ class Visualizer:
         plt.savefig(os.path.join(save_path, fig_name))
         plt.close()
 
-    def plot_fid_score(self, fid_score: List[float], 
+    def plot_fid_score(self, fid_score: List[float], fid_conf: List[tuple],
                           save_path: str = os.path.join(PROJECT_BASE_DIR,'results','plots','evaluation'),
                           fig_name: str = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-FID-DiffusionModel.png"):
         '''
@@ -81,12 +97,20 @@ class Visualizer:
 
         Inputs:
         - fid_score: List of FID scores
+        - fid_conf: List of confidence intervals for fid score
         - save_path: Path to save-directory
         - fig_name: Name of the saved file
         '''
+        # extract lower & upper bounds
+        lower, upper = [], []
+        for conf in fid_conf:
+            lower.append(conf[0])
+            upper.append(conf[1])
+
         # create plot
         fig, ax = plt.subplots(figsize=(10,6))
         ax.plot(fid_score, color='red', label='FID Score')
+        ax.fill_between(range(len(fid_score)), lower, upper, color='red', alpha=0.1)
         ax.set_xlabel('Iteration')
         ax.set_ylabel('Score')
         ax.set_title(' Approximated FID Score of DDPM on Validation Set')

@@ -11,9 +11,12 @@ class Logger:
         self.visualizer = Visualizer()
 
         # List containing training & validation metrics
-        self.loss =[]
+        self.loss = []
         self.val_loss = []
         self.fid_scores = []
+        self.loss_conf = []
+        self.val_loss_conf = []
+        self.fid_conf = []
 
         # Best model
         self.best_model = None
@@ -25,7 +28,7 @@ class Logger:
         self.last_epoch = None
         self.last_scores = np.array([np.inf, np.inf, 0])
 
-    def log_training(self, loss, val_loss, fid_score):
+    def log_training(self, loss, val_loss, fid_score, loss_conf, val_loss_conf, fid_conf):
         '''
         Method to log the training & validation metrics.
         To be called after every epoch.
@@ -34,10 +37,16 @@ class Logger:
         - losses: List of training losses
         - fid_scores: List of FID scores
         - is_scores: List of Inception scores
+        - loss_conf: upper & lower confidence interval bounds (gaussian)
+        - val_loss_conf: upper & lower confidence interval bounds (gaussian)
+        - fid_conf: upper & lower confidence interval bounds (student-t)
         '''
         self.loss.append(loss)
         self.val_loss.append(val_loss)
         self.fid_scores.append(fid_score)
+        self.loss_conf.append(loss_conf)
+        self.val_loss_conf.append(val_loss_conf)
+        self.fid_conf.append(fid_conf)
 
     def log_model(self, model, epoch):
         '''
@@ -68,8 +77,8 @@ class Logger:
         To be called after training.
         '''
         # Plot the loss & scores
-        self.visualizer.plot_loss(self.loss, self.val_loss, save_path=save_path)
-        self.visualizer.plot_fid_score(self.fid_scores, save_path=save_path)
+        self.visualizer.plot_loss(self.loss, self.val_loss, self.loss_conf, self.val_loss_conf, save_path=save_path)
+        self.visualizer.plot_fid_score(self.fid_scores, self.fid_conf, save_path=save_path)
 
     def save(self, save_dir=None):
         '''
