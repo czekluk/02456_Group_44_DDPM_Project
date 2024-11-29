@@ -25,4 +25,6 @@ HOME_DIR=/zhome/25/a/202562/Deep-Learning/02456_Group_44_DDPM_Project
 LOG_FILE="$HOME_DIR/hpc_logs/output_ph2_unet.txt"
 
 source run_deep_learning.sh
-python3 /zhome/25/a/202562/Deep-Learning/02456_Group_44_DDPM_Project/src/main.py > "$LOG_FILE" 2>&1
+
+# Pass the arguments to the Python script
+python3 /zhome/25/a/202562/Deep-Learning/02456_Group_44_DDPM_Project/src/main.py --data_type "mnist" --schedule "lin" --attention "noattention" > "$LOG_FILE" 2>&1

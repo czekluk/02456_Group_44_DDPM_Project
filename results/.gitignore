@@ -1,4 +1,4 @@
-images
-models
-plots
-logs
+images/*
+models/*
+plots/*
+logs/*

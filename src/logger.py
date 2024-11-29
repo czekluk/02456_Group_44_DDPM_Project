@@ -71,16 +71,16 @@ class Logger:
         self.last_scores = np.array([self.loss[-1], self.val_loss[-1], self.fid_scores[-1]])
         self.last_epoch = epoch
 
-    def plot(self):
+    def plot(self, save_path=None):
         '''
         Method to plot the training & validation metrics.
         To be called after training.
         '''
         # Plot the loss & scores
-        self.visualizer.plot_loss(self.loss, self.val_loss)
-        self.visualizer.plot_fid_score(self.fid_scores)
+        self.visualizer.plot_loss(self.loss, self.val_loss, save_path=save_path)
+        self.visualizer.plot_fid_score(self.fid_scores, save_path=save_path)
 
-    def save(self):
+    def save(self, save_dir=None):
         '''
         Method to save the best model and all logs.
         To be called after training.
@@ -88,7 +88,10 @@ class Logger:
         # Save the logs
         epochs = list(np.arange(0, len(self.loss)))
         data = [epochs, self.loss, self.val_loss, self.fid_scores]
-        file_name = os.path.join(PROJECT_BASE_DIR, 'results', 'logs', f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Logs.json")
+        if save_dir is None:
+            file_name = os.path.join(PROJECT_BASE_DIR, 'results', 'logs', f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Logs.csv")
+        else:
+            file_name = os.path.join(save_dir, 'logs', f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Logs.csv")
         if not os.path.exists(os.path.dirname(file_name)):
             os.makedirs(os.path.dirname(file_name))
         json_dict = {'epochs': [int(item) for item in epochs], 
@@ -100,5 +103,7 @@ class Logger:
         print(f'Logs saved to {file_name}')
 
         # Save the best model
-        self.best_model.save(model_name=f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Epoch_{self.best_epoch:04}-ValLoss_{self.best_scores[1]:.2f}-BestDiffusionModel.pth")
-        self.last_model.save(model_name=f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Epoch_{self.last_epoch:04}-ValLoss_{self.last_scores[1]:.2f}-LastDiffusionModel.pth")
+        best_model_name=os.path.join(save_dir,f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Epoch_{self.best_epoch:04}-ValLoss_{self.best_scores[1]:.2f}-BestDiffusionModel.pth")
+        self.best_model.save(best_model_name)
+        last_model_name=os.path.join(save_dir,f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-Epoch_{self.last_epoch:04}-ValLoss_{self.last_scores[1]:.2f}-LastDiffusionModel.pth")
+        self.last_model.save(last_model_name)
