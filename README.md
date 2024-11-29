@@ -46,3 +46,15 @@ List of Arguments:
 ```
 ### Jupyter Notebook
 Alternatively, you may replicate our results via the Jupyter Notebook at `TBD`, which can be used to plot and sample from an already trained model.
+
+# Results
+## MNIST
+### Training Loss:
+
+<img src="./results/mnist/linear/attention/2024-11-29_03-59-44/2024-11-28_23-59-49-Loss-DiffusionModel.png" alt="training_loss" width="800"/>
+
+### Reverse Process
+<img src="./results/mnist/linear/attention/2024-11-29_03-59-44/images/2024-11-28_23-59-49-Reverse-Process.png" alt="training_loss" width="800"/>
+
+### Generated Images
+<img src="./results/mnist/linear/attention/2024-11-29_03-59-44/images/2024-11-28_23-59-49-Generated-Images.png" alt="training_loss" width="800"/>
