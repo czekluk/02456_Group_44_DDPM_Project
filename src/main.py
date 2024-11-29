@@ -2,19 +2,15 @@ import torch
 import os
 import sys
 
-import numpy as np
-import matplotlib.pyplot as plt
-import tqdm
-
 from datetime import datetime
-from torchvision import datasets, transforms
+from torchvision import transforms
 
 from diffusion_model import DiffusionModel
 from dataset import DiffusionDataModule
 from trainer import Trainer
 from logger import Logger
 from visualizer import Visualizer
-from model import SimpleModel
+from unet import SimpleModel
 from schedule import LinearSchedule, CosineSchedule
 import argparse
 import sys

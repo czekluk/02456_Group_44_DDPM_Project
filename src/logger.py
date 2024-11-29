@@ -1,16 +1,7 @@
-import torch
 import os
-import sys
 import json
-
 import numpy as np
-import matplotlib.pyplot as plt
-import tqdm
-import csv
-
 from datetime import datetime
-from torchvision import datasets, transforms
-
 from visualizer import Visualizer
 
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

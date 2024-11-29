@@ -7,7 +7,7 @@ from torchvision import transforms
 from dataset import DiffusionDataModule
 from generator import Generator
 from diffusion_model import DiffusionModel
-from model import SimpleModel
+from unet import SimpleModel
 from metrics import tfFIDScore
 
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
