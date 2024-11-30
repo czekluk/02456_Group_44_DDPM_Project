@@ -122,3 +122,5 @@ main_notebook.ipynb
 
 /data
 *.sh
+*.csv
+*.png

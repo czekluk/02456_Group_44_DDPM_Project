@@ -147,6 +147,8 @@ class DiffusionModel:
         Returns:
         - x_t: Image with added noise at step t
         '''
+        if t == 0:
+            return x
         # calculate mean of forward sampling process
         mean = torch.sqrt(torch.tensor([self.schedule.alpha_dash(t)])) * x
 
