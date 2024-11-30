@@ -31,13 +31,13 @@ class Visualizer:
         '''
         # extract lower & upper bounds
         lower, upper = [], []
-        for conf in loss_conf:
-            lower.append(conf[0])
-            upper.append(conf[1])
+        for conf_ in loss_conf:
+            lower.append(conf_[0])
+            upper.append(conf_[1])
         val_lower, val_upper = [], []
-        for conf in val_loss_conf:
-            val_lower.append(conf[0])
-            val_upper.append(conf[1])
+        for conf_ in val_loss_conf:
+            val_lower.append(conf_[0])
+            val_upper.append(conf_[1])
 
         # create plot
         fig, ax = plt.subplots(figsize=(10,6))

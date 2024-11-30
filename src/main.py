@@ -39,7 +39,7 @@ def main(args):
             shuffle=True,
             transform=transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize((0.5,), (0.5,))
+                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
             ])
         )
         val_loader = data_module.get_CIFAR10_dataloader(
@@ -48,7 +48,7 @@ def main(args):
             shuffle=True,
             transform=transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize((0.5,), (0.5,))
+                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
             ])
         )
     elif DATA_FLAG == "mnist":
@@ -77,9 +77,9 @@ def main(args):
     T = 1000
     if DATA_FLAG == "cifar10":
         if ATTENTION_FLAG=="attention":
-            model = SimpleModel(ch_layer0=32, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
+            model = SimpleModel(ch_layer0=32, out_ch=3, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
         elif ATTENTION_FLAG=="noattention":
-            model = SimpleModel(ch_layer0=32, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
+            model = SimpleModel(ch_layer0=32, out_ch=3, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
         if SCHEDULE_FLAG == "linear":
             schedule = LinearSchedule(10e-4, 0.02, T)
         elif SCHEDULE_FLAG == "cosine":
@@ -93,7 +93,7 @@ def main(args):
             optimizer=torch.optim.Adam(diffusion_model.model.parameters(), lr=1e-4),
             num_epochs=60,
             normalized=True,
-            validate=True # validates on mnist classifier (images are resized & converted to greyscale)
+            validate="cifar10"
         )
     elif DATA_FLAG == "mnist":
         if ATTENTION_FLAG=="attention":
@@ -112,7 +112,8 @@ def main(args):
             val_loader=val_loader,
             optimizer=torch.optim.Adam(diffusion_model.model.parameters(), lr=1e-4),
             num_epochs=30,
-            normalized=True
+            normalized=True,
+            validate="mnist"
         )
     else:
         raise NotImplementedError
@@ -133,6 +134,7 @@ def main(args):
 
     # Plot the samples
     images_path = os.path.join(save_dir, "images")
+    os.makedirs(images_path, exist_ok=True)
     visualizer = Visualizer()
     x, _ = next(iter(val_loader))
     visualizer.plot_forward_process(diffusion_model, x, [0, T//4, T//2, T*3//4, T], save_path=images_path)
