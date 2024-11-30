@@ -77,9 +77,9 @@ def main(args):
     T = 1000
     if DATA_FLAG == "cifar10":
         if ATTENTION_FLAG=="attention":
-            model = SimpleModel(ch_layer0=32, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
+            model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
         elif ATTENTION_FLAG=="noattention":
-            model = SimpleModel(ch_layer0=32, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
+            model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
         if SCHEDULE_FLAG == "linear":
             schedule = LinearSchedule(10e-4, 0.02, T)
         elif SCHEDULE_FLAG == "cosine":
@@ -97,9 +97,9 @@ def main(args):
         )
     elif DATA_FLAG == "mnist":
         if ATTENTION_FLAG=="attention":
-            model = SimpleModel(ch_layer0=32, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
+            model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
         elif ATTENTION_FLAG=="noattention":
-            model = SimpleModel(ch_layer0=32, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
+            model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
         if SCHEDULE_FLAG == "linear":
             schedule = LinearSchedule(10e-4, 0.02, T)
         elif SCHEDULE_FLAG == "cosine":
@@ -111,7 +111,7 @@ def main(args):
             train_loader=train_loader,
             val_loader=val_loader,
             optimizer=torch.optim.Adam(diffusion_model.model.parameters(), lr=1e-4),
-            num_epochs=30,
+            num_epochs=2,
             normalized=True
         )
     else:
