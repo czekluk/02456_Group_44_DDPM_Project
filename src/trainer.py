@@ -18,7 +18,7 @@ class Trainer:
                  optimizer: torch.optim.Optimizer,
                  num_epochs: int = 100,
                  normalized: bool = True,
-                 validate: bool = True):
+                 validate = None):
         self.diffusion_model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -56,7 +56,7 @@ class Trainer:
                 val_loss = self.diffusion_model.val_loss(x)
                 epoch_val_loss.append(val_loss)
                 # Calculate fid score for first 5 minibatches
-                if minibatch_idx < 10:
+                if minibatch_idx < 5:
                     if self.validate_flag:
                         fid_score= self.validate(x)
                     else:
@@ -92,7 +92,7 @@ class Trainer:
         '''
         # fid = FIDScore()
         # iSc = InceptionScore()
-        fid = tfFIDScore(normalized=self.normalized)
+        fid = tfFIDScore(normalized=self.normalized, mode=self.validate_flag)
 
         self.diffusion_model.model.eval() # should possibly be inside the sample method
         with torch.no_grad():

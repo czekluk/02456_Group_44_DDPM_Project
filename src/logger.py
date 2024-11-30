@@ -77,7 +77,7 @@ class Logger:
         To be called after training.
         '''
         # Plot the loss & scores
-        self.visualizer.plot_loss(self.loss, self.val_loss, self.loss_conf, self.val_loss_conf, save_path=save_path)
+        self.visualizer.plot_loss(self.loss, self.val_loss, self.loss_conf, self.val_loss_conf, conf=False, save_path=save_path)
         self.visualizer.plot_fid_score(self.fid_scores, self.fid_conf, save_path=save_path)
 
     def save(self, save_dir=None):

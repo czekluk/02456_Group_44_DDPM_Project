@@ -134,7 +134,8 @@ class tfFIDScore:
         if mode == 'mnist':
             self.classifier = tfhub.load("https://tfhub.dev/tensorflow/tfgan/eval/mnist/logits/1")
         elif mode == 'cifar10':
-            raise NotImplementedError('CIFAR-10 not implemented yet')
+            print("NOTE: CIFAR-10 uses MNIST Classifier for FID calculation")
+            self.classifier = tfhub.load("https://tfhub.dev/tensorflow/tfgan/eval/mnist/logits/1")
         else:
             raise ValueError('Invalid mode. Choose from: mnist, cifar10')
         self.normalized = normalized
@@ -157,6 +158,16 @@ class tfFIDScore:
         
         if real_img.shape != gen_img.shape:
             raise ValueError('Input tensors must have the same shape')
+        
+        batch_size, channels, height, width = real_img.shape
+        if channels > 1 or height != 28 or width != 28:
+            real_img = transforms.Resize((28,28))(real_img)
+            real_img = transforms.Grayscale()(real_img)
+
+        batch_size, channels, height, width = gen_img.shape
+        if channels > 1 or height != 28 or width != 28:
+            gen_img = transforms.Resize((28,28))(gen_img)
+            gen_img = transforms.Grayscale()(gen_img)
         
         # permute tensors
         real_img = real_img.permute(0, 2, 3, 1).cpu().detach().numpy()
