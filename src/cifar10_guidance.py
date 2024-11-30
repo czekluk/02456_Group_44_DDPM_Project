@@ -27,8 +27,7 @@ class CIFAR10GuidanceClassifier(torch.nn.Module):
         self.max_pool = torch.nn.MaxPool2d(kernel_size=2, stride=2)
         self.relu = torch.nn.ReLU()
 
-        self.fc = torch.nn.Linear(256*int(self.img_shape[1]/4)*int(self.img_shape[2]/4), 1024)
-        self.fc1 = torch.nn.Linear(1024, self.num_classes)
+        self.fc = torch.nn.Linear(256*int(self.img_shape[1]/4)*int(self.img_shape[2]/4), self.num_classes)
 
     def forward(self, x):
         x = self.relu(self.conv1(x))

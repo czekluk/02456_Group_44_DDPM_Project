@@ -93,7 +93,7 @@ def main(args):
             optimizer=torch.optim.Adam(diffusion_model.model.parameters(), lr=1e-4),
             num_epochs=60,
             normalized=True,
-            validate=False
+            validate=True # validates on mnist classifier (images are resized & converted to greyscale)
         )
     elif DATA_FLAG == "mnist":
         if ATTENTION_FLAG=="attention":
