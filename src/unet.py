@@ -1,3 +1,10 @@
+# The model from https://github.com/hojonathanho/diffusion/blob/master/diffusion_tf/models/unet.py was taken as a basis for this model. 
+# The referenced model is implemented in Tensorflow, this is a Pytorch implementation. 
+# The modifications to the original model include:
+# - addition of a wrapper class
+# - changes in t embedding
+# - changes in the placement of attention blocks
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
