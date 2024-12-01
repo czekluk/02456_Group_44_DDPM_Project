@@ -1,5 +1,7 @@
 import os
 import torch
+import argparse
+import sys
 from torchvision import datasets, transforms
 import numpy as np
 
@@ -8,6 +10,8 @@ from diffusion_model import DiffusionModel
 from visualizer import Visualizer
 from dataset import DiffusionDataModule
 from schedule import LinearSchedule, CosineSchedule
+from mnist_guidance import MNISTGuidanceClassifier
+from cifar10_guidance import CIFAR10GuidanceClassifier
 
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -28,6 +32,27 @@ class Generator:
         - samples: Generated samples as a tensor with shape [num_samples, C, H, W]
         '''
         samples = self.diffusion_model.sample(n_samples=num_samples)
+
+        if plot:
+            if num_samples >= 2:
+                self.visualizer.plot_multiple_images(samples)
+            else:
+                self.visualizer.plot_single_image(samples)
+
+        return samples
+    
+    def generate_guided(self, num_samples: int = 1, plot: bool = False, class_label: int = 0):
+        '''
+        Method to generate samples using the diffusion model with classifier guidance
+
+        Inputs:
+        - num_samples: Number of samples to generate
+        - class_label: label of class to plot
+
+        Returns:
+        - samples: Generated samples as a tensor with shape [num_samples, C, H, W]
+        '''
+        samples = self.diffusion_model.guided_sample(n_samples=num_samples, class_label=class_label)
 
         if plot:
             if num_samples >= 2:
@@ -74,18 +99,65 @@ class Generator:
                 self.visualizer.plot_reconstructed_image(x, recon_x)
 
         return recon_x
+    
+def main(args):
+    parser = argparse.ArgumentParser(description="Train a diffusion model.")
+    parser.add_argument("--data_type", type=str, choices=["mnist", "cifar10"], required=True, help="Dataset to use: 'mnist' or 'cifar10'")
+    parser.add_argument("--schedule", type=str, choices=["linear", "cosine"], required=True, help="Schedule type: 'linear' or 'cosine'")
+    parser.add_argument("--attention", type=str, choices=["attention", "noattention"], required=True, help="Attention type: 'attention' or 'noattention'")
+    parser.add_argument("--model", type=str,required=True, help="Model path: relative path to the trained UNet to use for sampling")
+    parser.add_argument("--guided_class", type=int, required=False, help="Guided class: Class to use for guided sampling")
 
-if __name__ == "__main__":
-    DATA_FLAG = "mnist" # change to "mnist" or "cifar10"
+    args = parser.parse_args(args)
 
+    DATA_FLAG = args.data_type
+    SCHEDULE_FLAG = args.schedule
+    ATTENTION_FLAG = args.attention
+    MODEL_PATH = args.model
+    GUIDED_CLASS = args.guided_class
+
+    # Initialize diffusion model
     T = 1000
-    schedule = LinearSchedule(10e-4, 0.02, T)
-    model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
-    gen = Generator(DiffusionModel(model, T=1000),
-                    os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-16_21-08-13-Epoch_0004-FID_5.76-DiffusionModel.pth'))
+    if DATA_FLAG == "cifar10":
+        if ATTENTION_FLAG=="attention":
+            model = SimpleModel(ch_layer0=32, out_ch=3, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
+        elif ATTENTION_FLAG=="noattention":
+            model = SimpleModel(ch_layer0=32, out_ch=3, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
+        
+        if SCHEDULE_FLAG == "linear":
+            schedule = LinearSchedule(10e-4, 0.02, T)
+        elif SCHEDULE_FLAG == "cosine":
+            schedule = CosineSchedule(T)
+
+        classifier = CIFAR10GuidanceClassifier()
+        classifier.load_state_dict(torch.load(os.path.join(PROJECT_BASE_DIR,'resources','models','guidance','cifar10_guidance_classifier.pth'), weights_only=True))
+
+        diffusion_model = DiffusionModel(model, T=T, schedule=schedule, img_shape=(3, 32, 32), classifier=classifier, lambda_guidance=100)
+        gen = Generator(diffusion_model, os.path.join(PROJECT_BASE_DIR, MODEL_PATH))
+
+    elif DATA_FLAG == "mnist":
+        if ATTENTION_FLAG=="attention":
+            model = SimpleModel(ch_layer0=32, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
+        elif ATTENTION_FLAG=="noattention":
+            model = SimpleModel(ch_layer0=32, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
+        
+        if SCHEDULE_FLAG == "linear":
+            schedule = LinearSchedule(10e-4, 0.02, T)
+        elif SCHEDULE_FLAG == "cosine":
+            schedule = CosineSchedule(T)
+
+        classifier = MNISTGuidanceClassifier()
+        classifier.load_state_dict(torch.load(os.path.join(PROJECT_BASE_DIR,'resources','models','guidance','mnist_guidance_classifier.pth'), weights_only=True))
+
+        diffusion_model = DiffusionModel(model, T=T, schedule=schedule, img_shape=(1, 28, 28))
+        gen = Generator(diffusion_model, os.path.join(PROJECT_BASE_DIR, MODEL_PATH))
+
+    else:
+        raise NotImplementedError
     
     samples = gen.generate(num_samples=16, plot=True)
-    all_samples = gen.generate_all_steps(num_samples=1, plot=True)
+
+    all_samples = gen.generate_all_steps(num_samples=1, plot=True, plot_steps=[0,1,2,3,4,5,6,7,8,9,10])
 
     data_module = DiffusionDataModule()
     if DATA_FLAG == "mnist":
@@ -105,7 +177,7 @@ if __name__ == "__main__":
             shuffle=True,
             transform=transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize((0.5,), (0.5,))    
+                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])    
             ])
         )
     else:
@@ -113,3 +185,9 @@ if __name__ == "__main__":
 
     x, _ = next(iter(val_loader))
     recon_x = gen.reconstruct(x, plot=True)
+
+    if GUIDED_CLASS is not None:
+        gen.generate_guided(num_samples=1, plot=True, class_label=GUIDED_CLASS)
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
