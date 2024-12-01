@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     data_module = DiffusionDataModule()
     if DATA_FLAG == "mnist":
-        val_loader = data_module.get_MNIST_dataloader(
+        test_loader = data_module.get_MNIST_dataloader(
             train=False,
             batch_size=16,
             shuffle=True,
@@ -99,7 +99,7 @@ if __name__ == "__main__":
             ])
         )
     elif DATA_FLAG == "cifar10":
-        val_loader = data_module.get_CIFAR10_dataloader(
+        test_loader = data_module.get_CIFAR10_dataloader(
             train=False,
             batch_size=16,
             shuffle=True,
@@ -111,5 +111,5 @@ if __name__ == "__main__":
     else:
         raise NotImplementedError
 
-    x, _ = next(iter(val_loader))
+    x, _ = next(iter(test_loader))
     recon_x = gen.reconstruct(x, plot=True)
