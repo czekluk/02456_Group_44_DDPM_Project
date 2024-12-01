@@ -33,38 +33,16 @@ def main(args):
     data_module = DiffusionDataModule()
 
     if DATA_FLAG == "cifar10":
-        train_loader = data_module.get_CIFAR10_dataloader(
-            train=True,
+        train_loader, val_loader, test_loader = data_module.get_CIFAR10_data_split(
             batch_size=128,
-            shuffle=True,
-            transform=transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-            ])
-        )
-        val_loader = data_module.get_CIFAR10_dataloader(
-            train=False,
-            batch_size=128,
-            shuffle=True,
             transform=transforms.Compose([
                 transforms.ToTensor(),
                 transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
             ])
         )
     elif DATA_FLAG == "mnist":
-        train_loader = data_module.get_MNIST_dataloader(
-            train=True,
+        train_loader, val_loader, test_loader = data_module.get_MNIST_data_split(
             batch_size=128,
-            shuffle=True,
-            transform=transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize((0.5,), (0.5,))
-            ])
-        )
-        val_loader = data_module.get_MNIST_dataloader(
-            train=False,
-            batch_size=128,
-            shuffle=True,
             transform=transforms.Compose([
                 transforms.ToTensor(),
                 transforms.Normalize((0.5,), (0.5,))
@@ -136,7 +114,7 @@ def main(args):
     images_path = os.path.join(save_dir, "images")
     os.makedirs(images_path, exist_ok=True)
     visualizer = Visualizer()
-    x, _ = next(iter(val_loader))
+    x, _ = next(iter(test_loader))
     visualizer.plot_forward_process(diffusion_model, x, [0, T//4, T//2, T*3//4, T], save_path=images_path)
     samples = diffusion_model.all_step_sample(n_samples=16)
     visualizer.plot_reverse_process(samples, [0, T//4, T//2, T*3//4, T], save_path=images_path)

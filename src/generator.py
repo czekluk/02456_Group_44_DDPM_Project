@@ -161,7 +161,7 @@ def main(args):
 
     data_module = DiffusionDataModule()
     if DATA_FLAG == "mnist":
-        val_loader = data_module.get_MNIST_dataloader(
+        test_loader = data_module.get_MNIST_dataloader(
             train=False,
             batch_size=16,
             shuffle=True,
@@ -171,7 +171,7 @@ def main(args):
             ])
         )
     elif DATA_FLAG == "cifar10":
-        val_loader = data_module.get_CIFAR10_dataloader(
+        test_loader = data_module.get_CIFAR10_dataloader(
             train=False,
             batch_size=16,
             shuffle=True,
