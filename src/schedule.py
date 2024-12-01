@@ -110,8 +110,8 @@ class CosineSchedule:
         Inputs: 
         - t: Iteration number
         '''
-        if t == 0: # No alpha for t-1
-            return 0
+        # if t == 0: # No alpha for t-1
+        #     return 0
         beta = 1 - (self._alpha(t) / self._alpha(t - 1))
         if beta >= 0.999: # Clamp beta to 0.999
             beta = 0.999

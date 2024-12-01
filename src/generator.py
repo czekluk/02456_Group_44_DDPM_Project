@@ -157,7 +157,7 @@ def main(args):
     
     samples = gen.generate(num_samples=16, plot=True)
 
-    all_samples = gen.generate_all_steps(num_samples=1, plot=True, plot_steps=[0,1,2,3,4,5,6,7,8,9,10])
+    all_samples = gen.generate_all_steps(num_samples=1, plot=True, plot_steps=[0, 250, 500, 750, 1000])
 
     data_module = DiffusionDataModule()
     if DATA_FLAG == "mnist":
