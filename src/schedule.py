@@ -86,7 +86,7 @@ class CosineSchedule:
         self.T = T
         
         self.f_0 = self._get_f_for_t(0)
-        self.schedule = torch.tensor([self.beta(t) for t in range(T+1)]).to(self.device)
+        self.schedule = torch.tensor([self._beta(t) for t in range(T+1)]).to(self.device)
 
     def _get_f_for_t(self, t: int):
         '''
@@ -94,7 +94,7 @@ class CosineSchedule:
         '''
         return np.cos(((t / self.T + self.s) / (1 + self.s)) * (np.pi / 2)) ** 2
 
-    def alpha(self, t: int):
+    def _alpha(self, t: int):
         '''
         Get alpha at iteration t
         
@@ -103,7 +103,7 @@ class CosineSchedule:
         '''
         return self._get_f_for_t(t) / self.f_0
     
-    def beta(self, t: int):
+    def _beta(self, t: int):
         '''
         Get beta at iteration t
         
@@ -112,10 +112,28 @@ class CosineSchedule:
         '''
         if t == 0: # No alpha for t-1
             return 0
-        beta = 1 - (self.alpha(t) / self.alpha(t - 1))
+        beta = 1 - (self._alpha(t) / self._alpha(t - 1))
         if beta >= 0.999: # Clamp beta to 0.999
             beta = 0.999
         return beta
+
+    def beta(self, t: int):
+        '''
+        Get beta at iteration t
+        
+        Inputs: 
+        - t: Iteration number
+        '''
+        return self.schedule[t]
+    
+    def alpha(self, t: int):
+        '''
+        Get alpha at iteration t
+        
+        Inputs:
+        -t: Iteration number
+        '''
+        return 1 - self.beta(t)
     
     def alpha_dash(self, t: int):
         '''
