@@ -55,9 +55,9 @@ def main(args):
     T = 1000
     if DATA_FLAG == "cifar10":
         if ATTENTION_FLAG=="attention":
-            model = SimpleModel(ch_layer0=32, out_ch=3, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
+            model = SimpleModel(ch_layer0=64, out_ch=3, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
         elif ATTENTION_FLAG=="noattention":
-            model = SimpleModel(ch_layer0=32, out_ch=3, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
+            model = SimpleModel(ch_layer0=64, out_ch=3, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
         if SCHEDULE_FLAG == "linear":
             schedule = LinearSchedule(10e-4, 0.02, T)
         elif SCHEDULE_FLAG == "cosine":
