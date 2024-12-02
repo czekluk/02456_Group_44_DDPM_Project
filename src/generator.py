@@ -120,9 +120,9 @@ def main(args):
     T = 1000
     if DATA_FLAG == "cifar10":
         if ATTENTION_FLAG=="attention":
-            model = SimpleModel(ch_layer0=32, out_ch=3, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
+            model = SimpleModel(ch_layer0=64, out_ch=3, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
         elif ATTENTION_FLAG=="noattention":
-            model = SimpleModel(ch_layer0=32, out_ch=3, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
+            model = SimpleModel(ch_layer0=64, out_ch=3, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
         
         if SCHEDULE_FLAG == "linear":
             schedule = LinearSchedule(10e-4, 0.02, T)
@@ -137,9 +137,9 @@ def main(args):
 
     elif DATA_FLAG == "mnist":
         if ATTENTION_FLAG=="attention":
-            model = SimpleModel(ch_layer0=32, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
+            model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
         elif ATTENTION_FLAG=="noattention":
-            model = SimpleModel(ch_layer0=32, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
+            model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
         
         if SCHEDULE_FLAG == "linear":
             schedule = LinearSchedule(10e-4, 0.02, T)
@@ -160,30 +160,26 @@ def main(args):
     all_samples = gen.generate_all_steps(num_samples=1, plot=True, plot_steps=[0, 250, 500, 750, 1000])
 
     data_module = DiffusionDataModule()
-    if DATA_FLAG == "mnist":
-        test_loader = data_module.get_MNIST_dataloader(
-            train=False,
+    if DATA_FLAG == "cifar10":
+        train_loader, val_loader, test_loader = data_module.get_CIFAR10_data_split(
             batch_size=16,
-            shuffle=True,
             transform=transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize((0.5,), (0.5,))    
+                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
             ])
         )
-    elif DATA_FLAG == "cifar10":
-        test_loader = data_module.get_CIFAR10_dataloader(
-            train=False,
+    elif DATA_FLAG == "mnist":
+        train_loader, val_loader, test_loader = data_module.get_MNIST_data_split(
             batch_size=16,
-            shuffle=True,
             transform=transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])    
+                transforms.Normalize((0.5,), (0.5,))
             ])
         )
     else:
         raise NotImplementedError
 
-    x, _ = next(iter(val_loader))
+    x, _ = next(iter(test_loader))
     recon_x = gen.reconstruct(x, plot=True)
 
     if GUIDED_CLASS is not None:
