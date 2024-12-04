@@ -178,6 +178,7 @@ class Model(nn.Module):
         self.attn_resolutions = chs_with_attention
         self.dropout = dropout
         self.resamp_with_conv = resamp_with_conv
+        self.label_embedding = nn.Embedding(10, ch_layer0 * 4)
 
         # Timestep embedding layers
         self.temb_dense0 = nn.Linear(ch_layer0, ch_layer0 * 4)
@@ -230,7 +231,9 @@ class Model(nn.Module):
         temb = get_timestep_embedding(t, self.temb_dense0.in_features)
         temb = F.silu(self.temb_dense0(temb))
         temb = F.silu(self.temb_dense1(temb))
-
+        return self._forward(x, temb)
+    
+    def _forward(self,x,temb):
         h = self.conv_in(x.float())
        
         hs = []

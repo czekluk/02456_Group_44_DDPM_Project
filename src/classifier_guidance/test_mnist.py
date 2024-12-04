@@ -2,14 +2,16 @@ import torch
 from torchvision import transforms
 import numpy as np
 import os
-
+import sys
+PROJECT_BASE_DIR =  os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+SRC_DIR = os.path.join(PROJECT_BASE_DIR, 'src')
+sys.path.append(SRC_DIR)
 from dataset import DiffusionDataModule
-from unet import Model, SimpleModel
-from diffusion_model import DiffusionModel
+from unet import SimpleModel
+from diffusion_model_c import DiffClassifierGuidance
 from visualizer import Visualizer
 from schedule import LinearSchedule, CosineSchedule
 
-PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 class MNISTGuidanceClassifier(torch.nn.Module):
     def __init__(self, img_shape=(1, 28, 28), num_classes=10):
@@ -95,31 +97,31 @@ def train():
 
         print(f'Epoch: {epoch+1} | Validation Loss: {np.mean(test_loss)} | Validation Accuracy: {np.mean(test_accuracy)}')
 
-    if not os.path.exists(os.path.join(PROJECT_BASE_DIR,'results','guidance')):
-        os.makedirs(os.path.join(PROJECT_BASE_DIR,'results','guidance'))
-    torch.save(model.state_dict(), os.path.join(PROJECT_BASE_DIR,'results','guidance','mnist_guidance_classifier.pth'))
+    if not os.path.exists(os.path.join(PROJECT_BASE_DIR,'results','classifier_guidance')):
+        os.makedirs(os.path.join(PROJECT_BASE_DIR,'results','classifier_guidance'))
+    torch.save(model.state_dict(), os.path.join(PROJECT_BASE_DIR,'results','classifier_guidance','mnist_guidance_classifier.pth'))
 
 def guided_sampling():
     ATTENTION_FLAG = "attention"
     SCHEDULE_FLAG = "linear"
 
     classifier = MNISTGuidanceClassifier()
-    classifier.load_state_dict(torch.load(os.path.join(PROJECT_BASE_DIR,'results','guidance','mnist_guidance_classifier.pth'), weights_only=True))
+    classifier.load_state_dict(torch.load(os.path.join(PROJECT_BASE_DIR,'results','classifier_guidance','mnist_guidance_classifier.pth'), weights_only=True))
 
     T=1000
     if ATTENTION_FLAG=="attention":
-        model = SimpleModel(ch_layer0=32, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
+        model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
     elif ATTENTION_FLAG=="noattention":
-        model = SimpleModel(ch_layer0=32, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
+        model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
     if SCHEDULE_FLAG == "linear":
         schedule = LinearSchedule(10e-4, 0.02, T)
     elif SCHEDULE_FLAG == "cosine":
         schedule = CosineSchedule(T)
-    diff_model = DiffusionModel(model, T=T, schedule=schedule, img_shape=(1, 28, 28), classifier=classifier, lambda_guidance=100)
+    diff_model = DiffClassifierGuidance(model, T=T, schedule=schedule, img_shape=(1, 28, 28), classifier=classifier, lambda_guidance=100)
     model_path = 'results/models/2_downsampling_2resnet_with_attention_in_every_layer_64ch_128ch_256ch_30_epochs_2024-11-22_04-22-17-Epoch_0030-ValLoss_5.85-DiffusionModel.pth'
     diff_model.load(os.path.join(PROJECT_BASE_DIR, model_path))
 
-    samples = diff_model.guided_sample(n_samples=16, class_label=3)
+    samples = diff_model.sample(n_samples=16, class_label=3)
 
     vis = Visualizer()
     vis.plot_multiple_images(samples, title='Guided Sampling', 
