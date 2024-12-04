@@ -10,8 +10,11 @@ from diffusion_model import DiffusionModel
 from visualizer import Visualizer
 from dataset import DiffusionDataModule
 from schedule import LinearSchedule, CosineSchedule
-from mnist_guidance import MNISTGuidanceClassifier
-from cifar10_guidance import CIFAR10GuidanceClassifier
+SRC_DIR= os.path.dirname(os.path.abspath(__file__))
+CLASS_GUIDANCE_DIR = os.path.join(SRC_DIR, 'classifier_guidance')
+sys.path.append(CLASS_GUIDANCE_DIR)
+from test_mnist import MNISTGuidanceClassifier
+from test_cifar10 import CIFAR10GuidanceClassifier
 
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

@@ -2,14 +2,19 @@ import torch
 from torchvision import transforms
 import numpy as np
 import os
-
+import sys
+PROJECT_BASE_DIR =  os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+SRC_DIR = os.path.join(PROJECT_BASE_DIR, 'src')
+sys.path.append(SRC_DIR)
 from dataset import DiffusionDataModule
-from unet import Model, SimpleModel
-from diffusion_model import DiffusionModel
+from unet import SimpleModel
 from visualizer import Visualizer
 from schedule import LinearSchedule, CosineSchedule
+from diffusion_model_c import DiffClassifierGuidance
 
-PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+
 
 class CIFAR10GuidanceClassifier(torch.nn.Module):
     def __init__(self, img_shape=(3, 32, 32), num_classes=10):
@@ -68,7 +73,7 @@ def train():
                                       ])
     )
 
-    NUM_EPOCHS = 50
+    NUM_EPOCHS = 10
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
@@ -104,16 +109,19 @@ def train():
             test_accuracy.append((y_pred.argmax(1) == y).float().mean().item())
 
         print(f'Epoch: {epoch+1} | Validation Loss: {np.mean(test_loss)} | Validation Accuracy: {np.mean(test_accuracy)}')
-    if not os.path.exists(os.path.join(PROJECT_BASE_DIR,'results','guidance')):
-        os.makedirs(os.path.join(PROJECT_BASE_DIR,'results','guidance'))
-    torch.save(model.state_dict(), os.path.join(PROJECT_BASE_DIR,'results','guidance','cifar10_guidance_classifier.pth'))
+    if not os.path.exists(os.path.join(PROJECT_BASE_DIR,'results','classifier_guidance')):
+        os.makedirs(os.path.join(PROJECT_BASE_DIR,'results','classifier_guidance'))
+        print('Created directory: ', os.path.join(PROJECT_BASE_DIR,'results','classifier_guidance'))
+    print('Saving model...')
+    torch.save(model.state_dict(), os.path.join(PROJECT_BASE_DIR,'results','classifier_guidance','cifar10_guidance_classifier.pth'))
+    print('Model saved at: ', os.path.join(PROJECT_BASE_DIR,'results','classifier_guidance','cifar10_guidance_classifier.pth'))
 
 def guided_sampling():
     ATTENTION_FLAG = "attention"
     SCHEDULE_FLAG = "linear"
 
     classifier = CIFAR10GuidanceClassifier()
-    classifier.load_state_dict(torch.load(os.path.join(PROJECT_BASE_DIR,'results','guidance','cifar10_guidance_classifier.pth'), weights_only=True))
+    classifier.load_state_dict(torch.load(os.path.join(PROJECT_BASE_DIR,'results','classifier_guidance','cifar10_guidance_classifier.pth'), weights_only=True))
 
     T=1000
     if ATTENTION_FLAG=="attention":
@@ -124,14 +132,14 @@ def guided_sampling():
         schedule = LinearSchedule(10e-4, 0.02, T)
     elif SCHEDULE_FLAG == "cosine":
         schedule = CosineSchedule(T)
-    diff_model = DiffusionModel(model, T=T, schedule=schedule, img_shape=(3, 32, 32), classifier=classifier, lambda_guidance=100)
+    diff_model = DiffClassifierGuidance(model, T=T, schedule=schedule, img_shape=(3, 32, 32), classifier=classifier, lambda_guidance=100)
     model_path = 'results/models/2_downsampling_2resnet_with_attention_in_every_layer_64ch_128ch_256ch_30_epochs_2024-11-22_04-22-17-Epoch_0030-ValLoss_5.85-DiffusionModel.pth'
     diff_model.load(os.path.join(PROJECT_BASE_DIR, model_path))
 
     class_dict = {"airplane": 0, "automobile": 1, "bird": 2, "cat": 3, "deer": 4,
                   "dog": 5, "frog": 6, "horse": 7, "ship": 8, "truck": 9}
 
-    samples = diff_model.guided_sample(n_samples=16, class_label=class_dict["cat"])
+    samples = diff_model.sample(n_samples=16, class_label=class_dict["cat"])
 
     vis = Visualizer()
     vis.plot_multiple_images(samples, title='Guided Sampling', 
@@ -139,7 +147,7 @@ def guided_sampling():
                              denormalize=False)
 
 if __name__ == "__main__":
-    TRAIN_FLAG = True
+    TRAIN_FLAG = False
     if TRAIN_FLAG:
         train()
     else:
