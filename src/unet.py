@@ -178,7 +178,6 @@ class Model(nn.Module):
         self.attn_resolutions = chs_with_attention
         self.dropout = dropout
         self.resamp_with_conv = resamp_with_conv
-        self.label_embedding = nn.Embedding(10, ch_layer0 * 4)
 
         # Timestep embedding layers
         self.temb_dense0 = nn.Linear(ch_layer0, ch_layer0 * 4)
