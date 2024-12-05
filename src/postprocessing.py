@@ -1,104 +1,141 @@
 import os
 import json
+import argparse
+import sys
+import numpy as np
+import torch
+import math
 
 from datetime import datetime
 from torchvision import transforms
+from tqdm import tqdm
 
 from dataset import DiffusionDataModule
 from generator import Generator
 from diffusion_model import DiffusionModel
 from unet import SimpleModel
 from metrics import tfFIDScore
+from schedule import LinearSchedule, CosineSchedule
 
 PROJECT_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-def post_mnist():
-    model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
-    gen = Generator(DiffusionModel(model, T=1000),
-                    os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-16_21-08-13-Epoch_0004-FID_5.76-DiffusionModel.pth'))
+def main(args):
+    parser = argparse.ArgumentParser(description="Train a diffusion model.")
+    parser.add_argument("--data_type", type=str, choices=["mnist", "cifar10"], required=True, help="Dataset to use: 'mnist' or 'cifar10'")
+    parser.add_argument("--schedule", type=str, choices=["linear", "cosine"], required=True, help="Schedule type: 'linear' or 'cosine'")
+    parser.add_argument("--attention", type=str, choices=["attention", "noattention"], required=True, help="Attention type: 'attention' or 'noattention'")
+    parser.add_argument("--model", type=str,required=True, help="Model path: relative path to the trained UNet to use for sampling")
+    parser.add_argument("--num_samples", type=int, required=True, help="Number of samples: chhose number of samples to calculate FID-score on. Should be multiple of batch size.")
+    parser.add_argument("--batch_size", type=int, required=True, help="Batch size: choose batch size for FID calculation")
+
+    args = parser.parse_args(args)
+
+    DATA_FLAG = args.data_type
+    SCHEDULE_FLAG = args.schedule
+    ATTENTION_FLAG = args.attention
+    MODEL_PATH = args.model
+    NUM_SAMPLES = args.num_samples
+    BATCH_SIZE = args.batch_size
+
+    # Initialize diffusion model
+    T = 1000
+    if DATA_FLAG == "cifar10":
+        if ATTENTION_FLAG=="attention":
+            model = SimpleModel(ch_layer0=64, out_ch=3, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
+        elif ATTENTION_FLAG=="noattention":
+            model = SimpleModel(ch_layer0=64, out_ch=3, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
+        
+        if SCHEDULE_FLAG == "linear":
+            schedule = LinearSchedule(10e-4, 0.02, T)
+        elif SCHEDULE_FLAG == "cosine":
+            schedule = CosineSchedule(T)
+
+        diffusion_model = DiffusionModel(model, T=T, schedule=schedule, img_shape=(3, 32, 32))
+        gen = Generator(diffusion_model, os.path.join(PROJECT_BASE_DIR, MODEL_PATH))
+
+    elif DATA_FLAG == "mnist":
+        if ATTENTION_FLAG=="attention":
+            model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
+        elif ATTENTION_FLAG=="noattention":
+            model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[], dropout=0.1, resamp_with_conv= True)
+        
+        if SCHEDULE_FLAG == "linear":
+            schedule = LinearSchedule(10e-4, 0.02, T)
+        elif SCHEDULE_FLAG == "cosine":
+            schedule = CosineSchedule(T)
+
+        diffusion_model = DiffusionModel(model, T=T, schedule=schedule, img_shape=(1, 28, 28))
+        gen = Generator(diffusion_model, os.path.join(PROJECT_BASE_DIR, MODEL_PATH))
+
+    else:
+        raise NotImplementedError
+
+    data_module = DiffusionDataModule()
+    if DATA_FLAG == "cifar10":
+        train_loader, val_loader, test_loader = data_module.get_CIFAR10_data_split(
+            batch_size=BATCH_SIZE,
+            val_split=0.0,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+            ])
+        )
+        scorer = tfFIDScore(mode='cifar10')
+    elif DATA_FLAG == "mnist":
+        train_loader, val_loader, test_loader = data_module.get_MNIST_data_split(
+            batch_size=BATCH_SIZE,
+            val_split=0.0,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,), (0.5,))
+            ])
+        )
+        scorer = tfFIDScore(mode='mnist')
+    else:
+        raise NotImplementedError
     
-    train_loader = DiffusionDataModule().get_MNIST_dataloader(
-        train=True,
-        batch_size=60000,
-        shuffle=True,
-        transform=transforms.Compose([transforms.ToTensor(), 
-                                      transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-                                      ])
-    )
-    train_samples = next(iter(train_loader))
+    overall_train_fid = []
+    overall_test_fid = []
 
-    test_loader = DiffusionDataModule().get_MNIST_dataloader(
-        train=False,
-        batch_size=10000,
-        shuffle=True,
-        transform=transforms.Compose([transforms.ToTensor(), 
-                                      transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-                                      ])
-    )
-    test_samples = next(iter(test_loader))
+    for i in range(0, math.ceil(NUM_SAMPLES/BATCH_SIZE)):
+        train_fid = []
+        test_fid = []
 
-    scorer = tfFIDScore(mode='mnist')
+        gen_samples = gen.generate(num_samples=BATCH_SIZE)
+        gen_samples = torch.from_numpy(gen_samples)
 
-    gen_train_samples = gen.generate(num_samples=60000)
-    gen_test_samples = gen.generate(num_samples=10000)
+        for minibatch_idx, (x, _) in tqdm(enumerate(train_loader), unit='minibatch', total=len(train_loader)):
+            if x.shape[0] == gen_samples.shape[0]:
+                _train_fid = scorer.calculate_fid(x, gen_samples)
+            else:
+                temp_samples = gen_samples[:x.shape[0]]
+                _train_fid = scorer.calculate_fid(x, temp_samples)
+            train_fid.append(_train_fid)
+        
+        overall_train_fid.append(np.mean(train_fid))
+        for minibatch_idx, (x, _) in tqdm(enumerate(test_loader), unit='minibatch', total=len(test_loader)):
+            if x.shape[0] == gen_samples.shape[0]:
+                _test_fid = scorer.calculate_fid(x, gen_samples)
+            else:
+                temp_samples = gen_samples[:x.shape[0]]
+                _test_fid = scorer.calculate_fid(x, temp_samples)
+            test_fid.append(_test_fid)
 
-    train_fid = scorer.calculate_fid(train_samples, gen_train_samples)
-    print(f'FID Score for training samples: {train_fid}')
+        overall_test_fid.append(np.mean(test_fid))
 
-    test_fid = scorer.calculate_fid(test_samples, gen_test_samples)
-    print(f'FID Score for test samples: {test_fid}')
+    print(f"Mean FID on training dataset: {np.mean(overall_train_fid)}")
+    print(f"Mean FID on test dataset: {np.mean(overall_test_fid)}")
 
-    file_name = os.path.join(PROJECT_BASE_DIR, 'results', 'metrics')
-    if not os.path.exists(os.path.dirname(file_name)):
-        os.makedirs(os.path.dirname(file_name))
-    file_name = os.path.join(file_name, f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-FID.json")
-    json_dict = {'train_fid': train_fid, 'test_fid': test_fid}
+    path_name = os.path.join(PROJECT_BASE_DIR, 'results', 'metrics', DATA_FLAG, SCHEDULE_FLAG, ATTENTION_FLAG)
+    if not os.path.exists(path_name):
+        os.makedirs(os.path.dirname(path_name))
+
+    file_name = os.path.join(path_name, f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-FID.json")
+    json_dict = {'model_path': MODEL_PATH,
+                 'train_fid': str(np.mean(overall_train_fid)), 
+                 'test_fid': str(np.mean(overall_test_fid))}
     with open(file_name, 'w') as f:
-        json.dump(json_dict, f)
-
-def post_cifar10():
-    model = SimpleModel(ch_layer0=64, out_ch=1, num_layers=3, num_res_blocks_per_layer=2, layer_ids_with_attn=[0,1,2], dropout=0.1, resamp_with_conv= True)
-    gen = Generator(DiffusionModel(model, T=1000),
-                    os.path.join(PROJECT_BASE_DIR, 'results/models/2024-11-16_21-08-13-Epoch_0004-FID_5.76-DiffusionModel.pth'))
-    
-    train_loader = DiffusionDataModule().get_CIFAR10_dataloader(
-        train=True,
-        batch_size=50000,
-        shuffle=True,
-        transform=transforms.Compose([transforms.ToTensor(), 
-                                      transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-                                      ])
-    )
-    train_samples = next(iter(train_loader))
-
-    test_loader = DiffusionDataModule().get_CIFAR10_dataloader(
-        train=False,
-        batch_size=10000,
-        shuffle=True,
-        transform=transforms.Compose([transforms.ToTensor(), 
-                                      transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-                                      ])
-    )
-    test_samples = next(iter(test_loader))
-
-    scorer = tfFIDScore(mode='cifar10')
-
-    gen_train_samples = gen.generate(num_samples=60000)
-    gen_test_samples = gen.generate(num_samples=10000)
-
-    train_fid = scorer.calculate_fid(train_samples, gen_train_samples)
-    print(f'FID Score for training samples: {train_fid}')
-
-    test_fid = scorer.calculate_fid(test_samples, gen_test_samples)
-    print(f'FID Score for test samples: {test_fid}')
-
-    file_name = os.path.join(PROJECT_BASE_DIR, 'results', 'metrics')
-    if not os.path.exists(os.path.dirname(file_name)):
-        os.makedirs(os.path.dirname(file_name))
-    file_name = os.path.join(file_name, f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-FID.json")
-    json_dict = {'train_fid': train_fid, 'test_fid': test_fid}
-    with open(file_name, 'w') as f:
-        json.dump(json_dict, f)
+        json.dump(json_dict, f, indent=4)
 
 if __name__ == "__main__":
-    post_mnist()
+    main(sys.argv[1:])
