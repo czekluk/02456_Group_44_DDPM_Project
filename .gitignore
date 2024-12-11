@@ -113,7 +113,6 @@ venv.bak/
 /data/
 main_notebook.ipynb
 
-*.ipynb
 *.out
 *.err
 *.json
