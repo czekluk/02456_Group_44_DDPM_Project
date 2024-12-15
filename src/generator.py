@@ -108,7 +108,7 @@ class Generator:
     
 def main(args):
     parser = argparse.ArgumentParser(description="Train a diffusion model.")
-    parser.add_argument("-mode", type=str, choices=["default", "guided_classifier", "guided_free"], required=True, help="Model mode: 'default' or 'guided_classifier' or 'guided_free'")
+    parser.add_argument("--mode", type=str, choices=["default", "guided_classifier", "guided_free"], required=True, help="Model mode: 'default' or 'guided_classifier' or 'guided_free'")
     parser.add_argument("--data_type", type=str, choices=["mnist", "cifar10"], required=True, help="Dataset to use: 'mnist' or 'cifar10'")
     parser.add_argument("--schedule", type=str, choices=["linear", "cosine"], required=True, help="Schedule type: 'linear' or 'cosine'")
     parser.add_argument("--attention", type=str, choices=["attention", "noattention"], required=True, help="Attention type: 'attention' or 'noattention'")
@@ -151,7 +151,7 @@ def main(args):
             classifier = CIFAR10GuidanceClassifier()
             classifier.load_state_dict(torch.load(os.path.join(PROJECT_BASE_DIR,'resources','models','guidance','cifar10_guidance_classifier.pth'), weights_only=True))
 
-            diffusion_model = DiffClassifierGuidance(model, T=T, schedule=schedule, img_shape=(3, 32, 32), classifier=classifier, lambda_guidance=100)
+            diffusion_model = DiffClassifierGuidance(model, T=T, schedule=schedule, img_shape=(3, 32, 32), classifier=classifier, lambda_guidance=200)
         elif MODE == "default":
             diffusion_model = DiffusionModel(model, T=T, schedule=schedule, img_shape=(3, 32, 32))
         elif MODE == "guided_free":
@@ -186,13 +186,15 @@ def main(args):
             classifier = MNISTGuidanceClassifier()
             classifier.load_state_dict(torch.load(os.path.join(PROJECT_BASE_DIR,'resources','models','guidance','mnist_guidance_classifier.pth'), weights_only=True))
 
-            diffusion_model = DiffClassifierGuidance(model, T=T, schedule=schedule, img_shape=(1, 28, 28), classifier=classifier, lambda_guidance=100)
+            diffusion_model = DiffClassifierGuidance(model, T=T, schedule=schedule, img_shape=(1, 28, 28), classifier=classifier, lambda_guidance=200)
         elif MODE == "default":
             diffusion_model = DiffusionModel(model, T=T, schedule=schedule, img_shape=(1, 28, 28))
         elif MODE == "guided_free":
             diffusion_model = DiffClassifierFreeGuidance(model, T=T, schedule=schedule, img_shape=(1, 28, 28))
         else:
             raise NotImplementedError
+        
+        gen = Generator(diffusion_model, os.path.join(PROJECT_BASE_DIR, MODEL_PATH))
 
     else:
         raise NotImplementedError
