@@ -8,7 +8,7 @@ SRC_DIR = os.path.join(PROJECT_BASE_DIR, 'src')
 sys.path.append(SRC_DIR)
 from dataset import DiffusionDataModule
 from unet import SimpleModel
-from diffusion_model_c import DiffClassifierGuidance
+from .diffusion_model_c import DiffClassifierGuidance
 from visualizer import Visualizer
 from schedule import LinearSchedule, CosineSchedule
 

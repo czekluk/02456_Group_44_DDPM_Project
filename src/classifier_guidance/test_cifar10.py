@@ -10,7 +10,7 @@ from dataset import DiffusionDataModule
 from unet import SimpleModel
 from visualizer import Visualizer
 from schedule import LinearSchedule, CosineSchedule
-from diffusion_model_c import DiffClassifierGuidance
+from .diffusion_model_c import DiffClassifierGuidance
 
 
 
