@@ -128,7 +128,7 @@ def main(args):
 
     path_name = os.path.join(PROJECT_BASE_DIR, 'results', 'metrics', DATA_FLAG, SCHEDULE_FLAG, ATTENTION_FLAG)
     if not os.path.exists(path_name):
-        os.makedirs(os.path.dirname(path_name))
+        os.makedirs(path_name)
 
     file_name = os.path.join(path_name, f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}-FID.json")
     json_dict = {'model_path': MODEL_PATH,

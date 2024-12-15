@@ -122,3 +122,5 @@ main_notebook.ipynb
 *.sh
 .csv
 .png
+
+/resources/models/
