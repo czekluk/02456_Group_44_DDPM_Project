@@ -167,9 +167,19 @@ class CosineSchedule:
     
 if __name__ == "__main__":
     # Test the linear schedule
-    linear_schedule = LinearSchedule(1e-4, 1, 1000)
-    linear_schedule.plot_schedule()
+    linear_schedule = LinearSchedule(1e-4, 0.02, 1001)
+    #linear_schedule.plot_schedule()
 
     # Test the cosine schedule
     cosine_schedule = CosineSchedule(1000)
-    cosine_schedule.plot_schedule()
+    #cosine_schedule.plot_schedule()
+
+    ts = torch.arange(1,1000)
+    
+    # Plot alpha_dash for both schedules
+    plt.figure(figsize=(9,5))
+    plt.plot(linear_schedule.alpha_dash_list(ts), label='Linear')
+    plt.plot(cosine_schedule.alpha_dash_list(ts), label='Cosine')
+    plt.ylabel(r'$\bar{\alpha}_t$')
+    plt.xlabel('t')
+    plt.legend()
